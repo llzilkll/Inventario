@@ -9,6 +9,37 @@
     <script src="./js/lib/tailwind.js"></script>
     <script src="./js/lib/sweetalert2.all.min.js"></script>
     <script src="./js/lib/html5-qrcode.min.js"></script>
+    <!-- Firebase Storage SDK (solo para imágenes, requiere conexión) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        const firebaseApp = initializeApp({
+            apiKey: "AIzaSyAZwE1BoSOdm5_C6AIGh4L66cqArpTWaX8",
+            storageBucket: "inventario-san-martin-pro.firebasestorage.app"
+        });
+        const storage = getStorage(firebaseApp);
+
+        // Exponer función global para obtener URL de imagen de Firebase Storage
+        window.getFirebaseImageUrl = async function(catalogo) {
+            try {
+                const extensions = ['jpg', 'jpeg', 'png', 'webp'];
+                for (const ext of extensions) {
+                    try {
+                        const imageRef = ref(storage, `fotos_inventario/${catalogo}.${ext}`);
+                        const url = await getDownloadURL(imageRef);
+                        return url;
+                    } catch (e) {
+                        // Probar con la siguiente extensión
+                    }
+                }
+                return null; // no existe imagen para este item
+            } catch (e) {
+                console.warn('Error accediendo Firebase Storage:', e);
+                return null;
+            }
+        };
+    </script>
     <style>
         /* Fallback de tipografía local sans-serif pero con buen interlineado y suavizado */
         body {
@@ -43,21 +74,31 @@
 
         /* Animación del láser del escáner */
         @keyframes laser-sweep {
-            0% { top: 4%; }
-            50% { top: 96%; }
-            100% { top: 4%; }
+            0%   { top: 2%; }
+            50%  { top: 96%; }
+            100% { top: 2%; }
         }
         .animate-laser {
-            animation: laser-sweep 2.5s infinite linear;
+            animation: laser-sweep 2s infinite ease-in-out;
         }
 
-        /* Forzar que el video llene el contenedor completo sin barras negras (zoom-to-fill) */
-        #reader video {
+        /* Escaner a pantalla completa: video llena el fondo sin barras negras */
+        #reader {
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover !important;
-            border-radius: 24px;
+            position: absolute !important;
+            top: 0; left: 0;
         }
+        #reader video {
+            width: 100%  !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+        /* Ocultar los controles internos que html5-qrcode inserta */
+        #reader img, #reader canvas { display: none !important; }
+        #reader__header_message { display: none !important; }
+        #reader__dashboard { display: none !important; }
+        #reader__status_span { display: none !important; }
     </style>
     <script>
         tailwind.config = {
@@ -151,45 +192,51 @@
 
     </div>
 
-    <!-- MODAL ESCÁNER DE CÁMARA (html5-qrcode) -->
-    <div id="scanner-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
-        <!-- Botón cerrar arriba a la derecha -->
-        <button onclick="closeScanner()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 active:scale-95 transition-all z-10 flex items-center justify-center text-lg">
-            ✕
-        </button>
+    <!-- MODAL ESCÁNER DE CÁMARA - Pantalla Completa -->
+    <div id="scanner-modal" class="fixed inset-0 z-[100] bg-black hidden opacity-0 transition-opacity duration-300">
         
-        <!-- Título del Escáner -->
-        <div class="text-center mb-6 px-4 z-10">
-            <h3 class="text-lg font-bold text-white tracking-wide">Escanear Código</h3>
-            <p class="text-xs text-slate-400 mt-1">Apunta con la cámara al código de barras o código QR</p>
-        </div>
-        
-        <!-- Contenedor del Escáner con visor interactivo -->
-        <div class="relative w-80 h-60 rounded-3xl overflow-hidden border border-brand-500/50 shadow-2xl shadow-brand-500/20 bg-slate-950 flex items-center justify-center">
-            <!-- Visor de html5-qrcode -->
-            <div id="reader" class="w-full h-full"></div>
-            
-            <!-- Marco de escaneo (Overlay visual) -->
-            <div class="absolute inset-0 border-[16px] border-black/40 pointer-events-none flex items-center justify-center">
-                <div class="w-full h-full border border-dashed border-white/40 rounded-xl relative">
-                    <!-- Esquinas de enfoque premium -->
-                    <div class="absolute -top-1 -left-1 w-5 h-5 border-t-[3px] border-l-[3px] border-brand-500 rounded-tl-sm"></div>
-                    <div class="absolute -top-1 -right-1 w-5 h-5 border-t-[3px] border-r-[3px] border-brand-500 rounded-tr-sm"></div>
-                    <div class="absolute -bottom-1 -left-1 w-5 h-5 border-b-[3px] border-l-[3px] border-brand-500 rounded-bl-sm"></div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 border-b-[3px] border-r-[3px] border-brand-500 rounded-br-sm"></div>
+        <!-- Video de fondo a pantalla completa (manejado por html5-qrcode) -->
+        <div id="reader" style="position:absolute;inset:0;"></div>
+
+        <!-- Overlay oscuro con recorte de ventana de escaneo -->
+        <div class="absolute inset-0 pointer-events-none" id="scan-overlay">
+            <!-- Zona de escaneo centrada (rectángulo grande y claro) -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div id="scan-window" class="relative" style="width:85vw; max-width:420px; height:52vw; max-height:280px;">
+                    <!-- Sombra alrededor (oscurece todo menos la ventana) -->
+                    <div class="absolute -inset-[200vw] bg-black/55"></div>
                     
-                    <!-- Línea láser de escaneo animada -->
-                    <div class="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-laser pointer-events-none"></div>
+                    <!-- Marco de la ventana de escaneo -->
+                    <div class="absolute inset-0 border-2 border-white/30 rounded-lg">
+                        <!-- Esquinas de enfoque -->
+                        <div class="absolute -top-0.5 -left-0.5 w-8 h-8 border-t-[3px] border-l-[3px] border-brand-500 rounded-tl"></div>
+                        <div class="absolute -top-0.5 -right-0.5 w-8 h-8 border-t-[3px] border-r-[3px] border-brand-500 rounded-tr"></div>
+                        <div class="absolute -bottom-0.5 -left-0.5 w-8 h-8 border-b-[3px] border-l-[3px] border-brand-500 rounded-bl"></div>
+                        <div class="absolute -bottom-0.5 -right-0.5 w-8 h-8 border-b-[3px] border-r-[3px] border-brand-500 rounded-br"></div>
+                        <!-- Láser animado -->
+                        <div class="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_10px_rgba(239,68,68,0.9)] animate-laser"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Selector de cámara y controles -->
-        <div class="mt-8 flex flex-col items-center gap-4 z-10">
-            <button id="switch-camera-btn" onclick="switchCamera()" class="px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 active:scale-95 transition-all flex items-center gap-2">
+        <!-- UI superior: título y botón cerrar -->
+        <div class="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-10 pb-4 pointer-events-auto" style="background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)">
+            <div>
+                <h3 class="text-white font-bold text-lg">Escanear Código</h3>
+                <p class="text-slate-300 text-xs mt-0.5">Apuntá el código dentro del recuadro</p>
+            </div>
+            <button onclick="closeScanner()" class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center text-xl border border-white/20 active:scale-95 transition-transform">
+                ✕
+            </button>
+        </div>
+
+        <!-- UI inferior: botón cambiar cámara y error -->
+        <div class="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-12 pt-6 pointer-events-auto gap-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)">
+            <button id="switch-camera-btn" onclick="switchCamera()" class="px-6 py-2.5 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-white active:scale-95 transition-all flex items-center gap-2 backdrop-blur-sm">
                 🔄 Cambiar Cámara
             </button>
-            <span id="scanner-error" class="text-[10px] text-red-400 font-medium max-w-[240px] text-center hidden"></span>
+            <span id="scanner-error" class="text-[11px] text-red-400 font-medium max-w-[280px] text-center hidden px-4"></span>
         </div>
     </div>
 
@@ -214,11 +261,26 @@
             </div>
 
             <!-- Descripción -->
-            <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 mb-5">
+            <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4">
                 <p id="modal-desc" class="text-sm text-slate-600 dark:text-slate-300 font-medium"></p>
             </div>
 
-            <!-- Tabs para Relaciones (Subcomponentes / Se usa en) -->
+            <!-- Imagen del Material desde Firebase -->
+            <div id="modal-image-container" class="mb-4 hidden">
+                <div class="relative w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <img id="modal-image" src="" alt="Foto del material"
+                        class="w-full object-contain max-h-52"
+                        onerror="document.getElementById('modal-image-container').classList.add('hidden')">
+                    <div id="modal-image-loading" class="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                        <svg class="animate-spin h-6 w-6 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs para Relaciones - Toque para mostrar/ocultar -->
             <div class="flex border-b border-slate-100 dark:border-slate-800 mb-4 text-sm font-bold">
                 <button onclick="switchTab('sub')" id="tab-sub" class="flex-1 pb-3 text-brand-600 dark:text-brand-500 border-b-2 border-brand-600 dark:border-brand-500 transition-colors">
                     🧩 Subcomponentes (<span id="sub-count">0</span>)
@@ -437,6 +499,32 @@
             document.getElementById('modal-part').textContent = `Nº de Parte: ${item.codigo_parte || 'N/A'}`;
             document.getElementById('modal-desc').textContent = item.descripcion || 'Este material no contiene descripción adicional.';
 
+            // --- Cargar imagen desde Firebase Storage ---
+            const imgContainer = document.getElementById('modal-image-container');
+            const imgEl = document.getElementById('modal-image');
+            const imgLoading = document.getElementById('modal-image-loading');
+
+            // Resetear a estado de carga
+            imgContainer.classList.remove('hidden');
+            imgLoading.classList.remove('hidden');
+            imgEl.src = '';
+
+            // Intentar obtener la URL (requiere conexión)
+            if (typeof window.getFirebaseImageUrl === 'function') {
+                window.getFirebaseImageUrl(item.catalogo).then(url => {
+                    if (url) {
+                        imgEl.src = url;
+                        imgEl.onload = () => imgLoading.classList.add('hidden');
+                        imgEl.onerror = () => imgContainer.classList.add('hidden');
+                    } else {
+                        imgContainer.classList.add('hidden');
+                    }
+                }).catch(() => imgContainer.classList.add('hidden'));
+            } else {
+                // Firebase aún no disponible (sin conexión)
+                imgContainer.classList.add('hidden');
+            }
+
             // Cargar Relaciones
             const subcomponents = maestroComponentsData.filter(c => c.catalogo === item.catalogo);
             const parents = maestroComponentsData.filter(c => c.componente === item.catalogo);
@@ -543,22 +631,37 @@
             }
         });
 
-        // Alternar entre Tabs del detalle
+        // Alternar entre Tabs del detalle - TOGGLE: toca el activo para ocultar, el otro para mostrar
         window.switchTab = function (tab) {
-            activeTab = tab;
             const tabSub = document.getElementById('tab-sub');
             const tabParent = document.getElementById('tab-parent');
             const subContainer = document.getElementById('subcomponents-container');
             const parentContainer = document.getElementById('parents-container');
+            const tabContent = document.getElementById('tab-content-wrapper');
+
+            // Si se toca el tab ya activo -> OCULTAR (toggle)
+            if (activeTab === tab) {
+                activeTab = null;
+                tabSub.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
+                tabParent.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
+                subContainer.classList.add('hidden');
+                parentContainer.classList.add('hidden');
+                if (tabContent) tabContent.classList.add('hidden');
+                return;
+            }
+
+            // Si se toca el tab inactivo -> MOSTRAR ese contenido
+            activeTab = tab;
+            if (tabContent) tabContent.classList.remove('hidden');
 
             if (tab === 'sub') {
                 tabSub.className = "flex-1 pb-3 text-brand-600 dark:text-brand-500 border-b-2 border-brand-600 dark:border-brand-500 transition-colors";
-                tabParent.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent hover:text-slate-600 transition-colors";
+                tabParent.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
                 subContainer.classList.remove('hidden');
                 parentContainer.classList.add('hidden');
             } else {
                 tabParent.className = "flex-1 pb-3 text-brand-600 dark:text-brand-500 border-b-2 border-brand-600 dark:border-brand-500 transition-colors";
-                tabSub.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent hover:text-slate-600 transition-colors";
+                tabSub.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
                 parentContainer.classList.remove('hidden');
                 subContainer.classList.add('hidden');
             }
@@ -654,25 +757,45 @@
             return cleanText.trim();
         }
 
-        // Función para liberar la cámara físicamente de forma garantizada
-        function forceReleaseCamera() {
+        // =============================================================
+        // FUNCIONES DEL ESCÁNER - Rediseñado con pantalla completa y
+        // destrucción/recreación del objeto en cada uso.
+        // Esto elimina el bug de "permisos perdidos" al volver atrás.
+        // =============================================================
+
+        // Liberar TODOS los recursos de cámara del navegador
+        async function forceReleaseCamera() {
+            // 1. Detener html5QrCode si existe y está activo
+            if (html5QrCode) {
+                try {
+                    if (html5QrCode.isScanning) {
+                        await html5QrCode.stop();
+                    }
+                } catch (e) { /* ignorar */ }
+                try {
+                    html5QrCode.clear();
+                } catch (e) { /* ignorar */ }
+                html5QrCode = null; // DESTRUIR COMPLETAMENTE - clave para no perder permisos
+            }
+            
+            // 2. Cortar todas las pistas de video activas del navegador
             try {
                 const videos = document.querySelectorAll('#reader video');
-                videos.forEach(video => {
-                    if (video.srcObject) {
-                        const stream = video.srcObject;
-                        const tracks = stream.getTracks();
-                        tracks.forEach(track => track.stop());
-                        video.srcObject = null;
+                videos.forEach(v => {
+                    if (v.srcObject) {
+                        v.srcObject.getTracks().forEach(t => t.stop());
+                        v.srcObject = null;
                     }
                 });
-            } catch (e) {
-                console.error("Error liberando cámara físicamente:", e);
-            }
+            } catch (e) { /* ignorar */ }
+            
+            // 3. Limpiar el DOM del reader para la próxima vez
+            const reader = document.getElementById('reader');
+            if (reader) reader.innerHTML = '';
         }
 
-        // Capturar navegación hacia atrás de Android para cerrar el modal del escáner sin salir de la app
-        window.addEventListener('popstate', function (event) {
+        // Botón físico "Atrás" de Android: cierra el escáner en vez de salir
+        window.addEventListener('popstate', function () {
             const modal = document.getElementById('scanner-modal');
             if (modal && !modal.classList.contains('hidden')) {
                 closeScanner(true);
@@ -683,188 +806,134 @@
         window.openScanner = async function () {
             if (isScannerStarting) return;
             isScannerStarting = true;
-            
-            // Ocultar teclado si estuviera abierto enfocando el input
+
             searchInput.blur();
-            
+
             const modal = document.getElementById('scanner-modal');
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-            }, 10);
-            
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
             document.getElementById('scanner-error').classList.add('hidden');
-            
+
             try {
-                if (!html5QrCode) {
-                    const formats = window.Html5QrcodeSupportedFormats;
-                    const options = {};
-                    if (formats) {
-                        options.formatsToSupport = [
-                            formats.QR_CODE,
-                            formats.DATA_MATRIX,
-                            formats.CODE_128,
-                            formats.CODE_39,
-                            formats.EAN_13,
-                            formats.UPC_A
-                        ].filter(f => f !== undefined);
-                    }
-                    html5QrCode = new Html5Qrcode("reader", options);
+                // Siempre crear una nueva instancia limpia
+                const formats = window.Html5QrcodeSupportedFormats;
+                const options = {};
+                if (formats) {
+                    options.formatsToSupport = [
+                        formats.QR_CODE,
+                        formats.DATA_MATRIX,
+                        formats.CODE_128,
+                        formats.CODE_39,
+                        formats.EAN_13,
+                        formats.UPC_A
+                    ].filter(f => f !== undefined);
                 }
-                
-                // Obtener cámaras disponibles en el dispositivo
+                html5QrCode = new Html5Qrcode('reader', options);
+
+                // Obtener lista de cámaras disponibles (solo la primera vez)
                 if (cameras.length === 0) {
                     const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length > 0) {
-                        cameras = devices;
-                        
-                        // Intentar buscar la cámara trasera principal.
-                        // En Android, la cámara trasera principal suele etiquetarse como "back", "rear", "trasera" o "0".
-                        const backIndex = devices.findIndex(d => {
-                            const label = d.label.toLowerCase();
-                            return label.includes("back") || label.includes("rear") || label.includes("trasera") || label.includes("camera 0");
-                        });
-                        
-                        currentCameraIndex = backIndex !== -1 ? backIndex : 0;
-                    } else {
-                        throw new Error("No se encontraron cámaras disponibles.");
-                    }
+                    if (!devices || devices.length === 0) throw new Error('Sin cámaras.');
+                    cameras = devices;
+                    // Buscar cámara trasera principal
+                    const backIdx = devices.findIndex(d => {
+                        const lbl = d.label.toLowerCase();
+                        return lbl.includes('back') || lbl.includes('rear') || lbl.includes('trasera') || lbl.includes('camera 0') || lbl.includes('cámara 0');
+                    });
+                    currentCameraIndex = backIdx !== -1 ? backIdx : 0;
                 }
-                
-                // Configuración optimizada para alta resolución, fluidez y relación de aspecto native
+
+                // Configuración: zona de detección grande y relación 4:3
                 const config = {
                     fps: 15,
-                    qrbox: (width, height) => {
-                        // Visor rectangular ancho ideal para códigos de barra horizontales largos y DataMatrix
-                        const w = Math.floor(width * 0.85);
-                        const h = Math.floor(height * 0.65);
-                        return { width: Math.min(w, 280), height: Math.min(h, 180) };
-                    },
-                    aspectRatio: 1.333333 // 4:3 para evitar distorsiones de la lente
+                    qrbox: (w, h) => ({
+                        width:  Math.round(w * 0.85),
+                        height: Math.round(h * 0.65)
+                    }),
+                    aspectRatio: 1.333333
                 };
-                
-                const selectedCamera = cameras[currentCameraIndex];
-                console.log(`Iniciando cámara: ${selectedCamera.label} (ID: ${selectedCamera.id})`);
-                
-                await html5QrCode.start(
-                    selectedCamera.id,
-                    config,
-                    onScanSuccess,
-                    onScanFailure
-                );
 
-                // Forzar autofoco continuo de la cámara si la lente y el navegador lo permiten
+                const cam = cameras[currentCameraIndex];
+                await html5QrCode.start(cam.id, config, onScanSuccess, onScanFailure);
+
+                // Activar autofoco continuo si el dispositivo lo soporta
                 setTimeout(() => {
                     try {
                         const track = html5QrCode.getRunningTrack();
-                        if (track && typeof track.getCapabilities === 'function') {
-                            const capabilities = track.getCapabilities();
-                            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                                track.applyConstraints({
-                                    advanced: [{ focusMode: 'continuous' }]
-                                }).catch(e => console.warn("No se pudo aplicar autofoco continuo:", e));
+                        if (track?.getCapabilities) {
+                            const caps = track.getCapabilities();
+                            if (caps.focusMode?.includes('continuous')) {
+                                track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+                                     .catch(() => {});
                             }
                         }
-                    } catch (e) {
-                        console.warn("No se pudo configurar autofoco:", e);
-                    }
+                    } catch (e) {}
                 }, 800);
 
-                // Insertar un estado en el historial para capturar el botón físico atrás de Android
-                window.history.pushState({ modal: "scanner" }, "");
+                // Registrar en historial para capturar botón físico Atrás
+                window.history.pushState({ modal: 'scanner' }, '');
 
             } catch (err) {
-                console.error("Error iniciando cámara:", err);
-                document.getElementById('scanner-error').textContent = "No se pudo acceder a la cámara. Concede permisos de cámara en tu dispositivo.";
-                document.getElementById('scanner-error').classList.remove('hidden');
+                console.error('Error iniciando cámara:', err);
+                const errEl = document.getElementById('scanner-error');
+                errEl.textContent = 'No se pudo acceder a la cámara. Verificá los permisos en Ajustes del celular.';
+                errEl.classList.remove('hidden');
             } finally {
                 isScannerStarting = false;
             }
-        }
+        };
 
-        // Callback al leer exitosamente un código
+        // Lectura exitosa de código
         function onScanSuccess(decodedText) {
             playBeep();
-            closeScanner();
-            
-            const parsedText = parseScanResult(decodedText);
-            
+            closeScanner(); // libera cámara
+
+            const parsed = parseScanResult(decodedText);
             isFromScan = true;
-            searchInput.value = parsedText;
+            searchInput.value = parsed;
             performSearch();
-            
+
             Swal.fire({
                 icon: 'success',
-                title: 'Código Leído',
-                text: `Buscando: ${parsedText}`,
-                timer: 1500,
+                title: 'Código Leído ✅',
+                text: `Buscando: ${parsed}`,
+                timer: 1800,
                 showConfirmButton: false,
                 position: 'top',
                 toast: true
             });
         }
 
-        function onScanFailure(error) {
-            // Silenciar fallos continuos de escaneo por cuadro
-        }
+        function onScanFailure() { /* silenciar fallos por cuadro */ }
 
-        // Detener cámara y cerrar modal
-        window.closeScanner = async function (isBackNavigation) {
+        // Cerrar y liberar la cámara por completo
+        window.closeScanner = async function (isBackNav) {
             const modal = document.getElementById('scanner-modal');
             modal.classList.add('opacity-0');
-            
-            if (html5QrCode && html5QrCode.isScanning) {
-                try {
-                    await html5QrCode.stop();
-                } catch (e) {
-                    console.error("Error apagando cámara:", e);
-                }
-            }
-            
-            // Garantizar la liberación física de la cámara (para evitar bloqueos)
-            forceReleaseCamera();
-            
-            // Si cerramos desde la interfaz (botón X), removemos el estado modal del historial
-            if (!isBackNavigation) {
-                if (window.history.state && window.history.state.modal === "scanner") {
+
+            await forceReleaseCamera(); // destruye y libera todo
+
+            // Si fue por botón X (no por Atrás), sacar el estado del historial
+            if (!isBackNav) {
+                if (window.history.state?.modal === 'scanner') {
                     window.history.back();
                 }
             }
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
-        }
 
-        // Alternar entre todas las cámaras del celular (trasera principal, gran angular, frontal, etc.)
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        // Cambiar a la siguiente lente disponible
         window.switchCamera = async function () {
             if (cameras.length <= 1) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Dispositivo con cámara única',
-                    text: 'No se detectaron otras lentes de cámara.',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    position: 'top',
-                    toast: true
-                });
+                Swal.fire({ icon:'info', title:'Cámara única', text:'No hay otras lentes disponibles.', timer:1500, showConfirmButton:false, position:'top', toast:true });
                 return;
             }
-            
-            if (html5QrCode && html5QrCode.isScanning) {
-                try {
-                    await html5QrCode.stop();
-                    forceReleaseCamera();
-                } catch (e) {
-                    console.error("Error al apagar cámara para cambio:", e);
-                }
-            }
-            
+            await forceReleaseCamera();
             currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
-            
-            // Reabrir escáner con la siguiente lente
+            isScannerStarting = false; // resetear bandera para reabrir
             openScanner();
-        }
+        };
 
         // Inicializar escuchas
         function init() {
