@@ -50,6 +50,14 @@
         .animate-laser {
             animation: laser-sweep 2.5s infinite linear;
         }
+
+        /* Forzar que el video llene el contenedor completo sin barras negras (zoom-to-fill) */
+        #reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 24px;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -240,7 +248,9 @@
         
         // Variables para Escáner
         let html5QrCode = null;
-        let cameraFacingMode = "environment";
+        let cameras = [];
+        let currentCameraIndex = 0;
+        let isScannerStarting = false;
         let isFromScan = false;
 
         // Elementos UI
@@ -644,8 +654,36 @@
             return cleanText.trim();
         }
 
+        // Función para liberar la cámara físicamente de forma garantizada
+        function forceReleaseCamera() {
+            try {
+                const videos = document.querySelectorAll('#reader video');
+                videos.forEach(video => {
+                    if (video.srcObject) {
+                        const stream = video.srcObject;
+                        const tracks = stream.getTracks();
+                        tracks.forEach(track => track.stop());
+                        video.srcObject = null;
+                    }
+                });
+            } catch (e) {
+                console.error("Error liberando cámara físicamente:", e);
+            }
+        }
+
+        // Capturar navegación hacia atrás de Android para cerrar el modal del escáner sin salir de la app
+        window.addEventListener('popstate', function (event) {
+            const modal = document.getElementById('scanner-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeScanner(true);
+            }
+        });
+
         // Abrir escáner e iniciar cámara
         window.openScanner = async function () {
+            if (isScannerStarting) return;
+            isScannerStarting = true;
+            
             // Ocultar teclado si estuviera abierto enfocando el input
             searchInput.blur();
             
@@ -674,7 +712,26 @@
                     html5QrCode = new Html5Qrcode("reader", options);
                 }
                 
-                // Configuración optimizada para alta resolución, fluidez y autofoco continuo
+                // Obtener cámaras disponibles en el dispositivo
+                if (cameras.length === 0) {
+                    const devices = await Html5Qrcode.getCameras();
+                    if (devices && devices.length > 0) {
+                        cameras = devices;
+                        
+                        // Intentar buscar la cámara trasera principal.
+                        // En Android, la cámara trasera principal suele etiquetarse como "back", "rear", "trasera" o "0".
+                        const backIndex = devices.findIndex(d => {
+                            const label = d.label.toLowerCase();
+                            return label.includes("back") || label.includes("rear") || label.includes("trasera") || label.includes("camera 0");
+                        });
+                        
+                        currentCameraIndex = backIndex !== -1 ? backIndex : 0;
+                    } else {
+                        throw new Error("No se encontraron cámaras disponibles.");
+                    }
+                }
+                
+                // Configuración optimizada para alta resolución, fluidez y relación de aspecto native
                 const config = {
                     fps: 15,
                     qrbox: (width, height) => {
@@ -683,15 +740,14 @@
                         const h = Math.floor(height * 0.65);
                         return { width: Math.min(w, 280), height: Math.min(h, 180) };
                     },
-                    aspectRatio: 1.333333 // Relación de aspecto 4:3 para evitar distorsiones de cámara
+                    aspectRatio: 1.333333 // 4:3 para evitar distorsiones de la lente
                 };
                 
+                const selectedCamera = cameras[currentCameraIndex];
+                console.log(`Iniciando cámara: ${selectedCamera.label} (ID: ${selectedCamera.id})`);
+                
                 await html5QrCode.start(
-                    { 
-                        facingMode: cameraFacingMode,
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
+                    selectedCamera.id,
                     config,
                     onScanSuccess,
                     onScanFailure
@@ -714,10 +770,15 @@
                     }
                 }, 800);
 
+                // Insertar un estado en el historial para capturar el botón físico atrás de Android
+                window.history.pushState({ modal: "scanner" }, "");
+
             } catch (err) {
                 console.error("Error iniciando cámara:", err);
                 document.getElementById('scanner-error').textContent = "No se pudo acceder a la cámara. Concede permisos de cámara en tu dispositivo.";
                 document.getElementById('scanner-error').classList.remove('hidden');
+            } finally {
+                isScannerStarting = false;
             }
         }
 
@@ -748,7 +809,7 @@
         }
 
         // Detener cámara y cerrar modal
-        window.closeScanner = async function () {
+        window.closeScanner = async function (isBackNavigation) {
             const modal = document.getElementById('scanner-modal');
             modal.classList.add('opacity-0');
             
@@ -760,17 +821,48 @@
                 }
             }
             
+            // Garantizar la liberación física de la cámara (para evitar bloqueos)
+            forceReleaseCamera();
+            
+            // Si cerramos desde la interfaz (botón X), removemos el estado modal del historial
+            if (!isBackNavigation) {
+                if (window.history.state && window.history.state.modal === "scanner") {
+                    window.history.back();
+                }
+            }
+            
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 300);
         }
 
-        // Alternar entre cámaras (trasera / frontal)
+        // Alternar entre todas las cámaras del celular (trasera principal, gran angular, frontal, etc.)
         window.switchCamera = async function () {
-            if (html5QrCode && html5QrCode.isScanning) {
-                await html5QrCode.stop();
+            if (cameras.length <= 1) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Dispositivo con cámara única',
+                    text: 'No se detectaron otras lentes de cámara.',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    position: 'top',
+                    toast: true
+                });
+                return;
             }
-            cameraFacingMode = cameraFacingMode === "environment" ? "user" : "environment";
+            
+            if (html5QrCode && html5QrCode.isScanning) {
+                try {
+                    await html5QrCode.stop();
+                    forceReleaseCamera();
+                } catch (e) {
+                    console.error("Error al apagar cámara para cambio:", e);
+                }
+            }
+            
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+            
+            // Reabrir escáner con la siguiente lente
             openScanner();
         }
 
