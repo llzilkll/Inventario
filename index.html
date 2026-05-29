@@ -272,8 +272,8 @@
             <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4 cursor-pointer flex-shrink-0" onclick="closeDetailModal()"></div>
             
             <!-- Imagen del Material desde Firebase (Mapeada arriba de todo) -->
-            <div id="modal-image-container" class="mb-4 hidden flex-1 min-h-0 flex-col">
-                <div class="relative w-full h-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm flex items-center justify-center p-1.5 flex-1 min-h-0">
+            <div id="modal-image-container" class="mb-4 hidden flex-shrink-0">
+                <div class="relative w-full h-[42vh] rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm flex items-center justify-center p-1.5">
                     <img id="modal-image" src="" alt="Foto del material"
                         class="w-full h-full object-contain rounded-xl"
                         onerror="document.getElementById('modal-image-container').classList.add('hidden')">
