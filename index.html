@@ -266,16 +266,16 @@
     <!-- MODAL DETALLES DEL ÍTEM -->
     <div id="detail-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
         <!-- Panel del Modal -->
-        <div id="detail-panel" class="w-full max-w-md bg-white dark:bg-darkCard rounded-t-[32px] p-6 shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col border-t border-slate-100 dark:border-slate-800">
+        <div id="detail-panel" class="w-full max-w-md bg-white dark:bg-darkCard rounded-t-[32px] p-6 shadow-2xl transform translate-y-full transition-transform duration-300 h-[82vh] flex flex-col border-t border-slate-100 dark:border-slate-800">
             
             <!-- Barra de arrastre visual -->
             <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4 cursor-pointer flex-shrink-0" onclick="closeDetailModal()"></div>
             
             <!-- Imagen del Material desde Firebase (Mapeada arriba de todo) -->
-            <div id="modal-image-container" class="mb-4 hidden flex-shrink-0">
-                <div class="relative w-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm flex items-center justify-center p-1.5">
+            <div id="modal-image-container" class="mb-4 hidden flex-1 min-h-0 flex-col">
+                <div class="relative w-full h-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm flex items-center justify-center p-1.5 flex-1 min-h-0">
                     <img id="modal-image" src="" alt="Foto del material"
-                        class="w-full object-contain max-h-64 h-60 rounded-xl"
+                        class="w-full h-full object-contain rounded-xl"
                         onerror="document.getElementById('modal-image-container').classList.add('hidden')">
                     <div id="modal-image-loading" class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-xl">
                         <svg class="animate-spin h-6 w-6 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
