@@ -426,9 +426,9 @@
             };
         }
 
-        // Realizar Búsqueda
+        // Realizar Búsqueda Inteligente y Comparación Cruzada
         function performSearch() {
-            const query = searchInput.value.toLowerCase().trim();
+            const query = searchInput.value.trim();
             resultsList.innerHTML = '';
             
             if (query === '') {
@@ -440,26 +440,63 @@
 
             clearBtn.classList.remove('hidden');
 
-            // Normalización para búsqueda insensible a símbolos/espacios
-            const normQuery = query.replace(/[\s\/\-_()]/g, '');
+            // Parsear de forma inteligente la consulta (extracción de número de serie y de parte)
+            const parsed = parseIntelligentCode(query);
+            console.log("Buscando con datos parseados:", parsed);
 
-            // 1. Filtrado por prioridades: Catálogo (coincidencia de texto clásica)
-            let filtered = maestroData.filter(item => 
-                String(item.catalogo || '').toLowerCase().includes(query)
-            );
+            // Normalización para búsquedas insensibles a símbolos y espacios
+            const cleanQuery = query.toLowerCase().replace(/[\s\/\-_()]/g, '');
+            const cleanPart = parsed.part ? parsed.part.toLowerCase().replace(/[\s\/\-_()]/g, '') : null;
+            const cleanSerial = parsed.serial ? parsed.serial.toLowerCase().replace(/[\s\/\-_()]/g, '') : null;
 
-            // 2. Prioridad: Código de Parte (insensible a guiones, barras, espacios, etc.)
-            if (filtered.length === 0) {
+            let filtered = [];
+
+            // 1. Prioridad: Coincidencia exacta con Número de Parte / Catálogo obtenido si está disponible
+            if (cleanPart) {
                 filtered = maestroData.filter(item => {
                     const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
-                    return normPart.includes(normQuery);
+                    const normCat = String(item.catalogo || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    return normPart === cleanPart || normCat === cleanPart;
                 });
             }
 
-            // 3. Prioridad: Descripción
+            // 2. Prioridad: Coincidencia exacta con Número de Serie obtenido (por si el serial representa un código)
+            if (filtered.length === 0 && cleanSerial) {
+                filtered = maestroData.filter(item => {
+                    const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    const normCat = String(item.catalogo || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    return normPart === cleanSerial || normCat === cleanSerial;
+                });
+            }
+
+            // 3. Prioridad: Búsqueda parcial de Número de Parte / Catálogo
+            if (filtered.length === 0 && cleanPart) {
+                filtered = maestroData.filter(item => {
+                    const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    const normCat = String(item.catalogo || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    return normPart.includes(cleanPart) || normCat.includes(cleanPart);
+                });
+            }
+
+            // 4. Prioridad: Búsqueda clásica por coincidencia en Catálogo usando toda la consulta
             if (filtered.length === 0) {
                 filtered = maestroData.filter(item => 
-                    String(item.descripcion || '').toLowerCase().includes(query)
+                    String(item.catalogo || '').toLowerCase().includes(query.toLowerCase())
+                );
+            }
+
+            // 5. Prioridad: Búsqueda clásica por coincidencia en Código de Parte usando toda la consulta
+            if (filtered.length === 0) {
+                filtered = maestroData.filter(item => {
+                    const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
+                    return normPart.includes(cleanQuery);
+                });
+            }
+
+            // 6. Prioridad: Búsqueda en Descripción (parcial usando toda la consulta o palabras clave)
+            if (filtered.length === 0) {
+                filtered = maestroData.filter(item => 
+                    String(item.descripcion || '').toLowerCase().includes(query.toLowerCase())
                 );
             }
 
@@ -743,39 +780,74 @@
             }
         }
 
-        // Algoritmo de extracción/parsing de códigos
-        function parseScanResult(text) {
+        // Algoritmo de procesamiento inteligente y extracción de datos del escaneo
+        function parseIntelligentCode(text) {
             text = text.trim();
-            console.log("Procesando código escaneado:", text);
-            
-            // 1. Detección de formato Ericsson (DataMatrix o 1D con prefijos)
-            // Extrae "KRC 161 495/1" de "1PKRC 161 495/1SCA74150981" o "(1P)KRC 161 495/1"
+            const result = {
+                raw: text,
+                serial: null,
+                part: null
+            };
+
+            // 1. Caso de separador " Y " (ej: Huawei "SN:2102311VFFP0Q9001339 Y WD2M8BBU5900")
+            const ySeparatorRegex = /\s+[Yy]\s+/;
+            if (ySeparatorRegex.test(text)) {
+                const parts = text.split(ySeparatorRegex);
+                let rawSerial = parts[0].trim();
+                let rawPart = parts[1].trim();
+
+                result.serial = rawSerial.replace(/^SN:?/i, '').trim();
+                result.part = rawPart;
+                return result;
+            }
+
+            // 2. Caso de formato industrial Ericsson / DataMatrix
+            // Extrae "KRC 161 495/1" y serial "CA74150981" de "(1P)KRC 161 495/1(S)CA74150981"
             const ericssonPartRegex = /(?:1P|\(1P\))?\s*(KRC\s*\d{3}\s*\d{3,4}(?:\/\d+)?)/i;
             const ericssonMatch = text.match(ericssonPartRegex);
+            
             if (ericssonMatch) {
-                return ericssonMatch[1].trim();
-            }
-
-            // 2. Detección de formato Huawei (Serial completo y extracción de BOM)
-            // Caso Huawei BBU box completo: "SN:2102311VFFP0Q9001339 Y WD2M0BBU5900"
-            if (text.includes("WD2M0BBU5900")) {
-                return "WD2M0BBU5900";
-            }
-            
-            // Caso número de serie estándar (extraer código de parte de 8 caracteres en posición 2 a 10)
-            let cleanSerial = text.replace(/^SN:?/i, '').trim();
-            let parts = cleanSerial.split(/\s+/);
-            for (let part of parts) {
-                if (part.length === 20 && part.startsWith('21')) {
-                    return part.substring(2, 10);
+                result.part = ericssonMatch[1].trim();
+                
+                // Buscar el serial en la cadena restante quitando el prefijo del part number
+                const remainingText = text.replace(ericssonMatch[0], '').trim();
+                const serialRegex = /(?:S|\(S\))\s*([A-Z0-9]{8,15})/i;
+                const serialMatch = remainingText.match(serialRegex);
+                
+                if (serialMatch) {
+                    result.serial = serialMatch[1].trim();
+                } else {
+                    // Si no tiene prefijo S pero queda un bloque alfanumérico largo
+                    const cleanRemaining = remainingText.replace(/^\((21P|2P|P)\)/i, '').replace(/^(21P|2P|P)/i, '').trim();
+                    if (cleanRemaining.length >= 8) {
+                        result.serial = cleanRemaining;
+                    }
                 }
+                return result;
             }
 
-            // 3. Limpieza por defecto de paréntesis de identificación (1P), (S), (21P)
-            let cleanText = text.replace(/^\((1P|S|21P)\)/i, '');
-            cleanText = cleanText.replace(/^(1P|S|21P)/i, '');
-            
-            return cleanText.trim();
+            // 3. Caso Huawei Serial estándar (SN:21...) de 20 caracteres que incluye el BOM (dígitos 2 a 10)
+            let cleanText = text.replace(/^SN:?/i, '').trim();
+            if (cleanText.length === 20 && cleanText.startsWith('21')) {
+                result.serial = cleanText;
+                result.part = cleanText.substring(2, 10);
+                return result;
+            }
+
+            // 4. Caso de formato Ericsson directo (KRC...)
+            if (/^KRC\s*\d/i.test(cleanText)) {
+                result.part = cleanText;
+                return result;
+            }
+
+            // 5. Caso genérico: si parece un serial alfanumérico largo puro
+            if (cleanText.length >= 8 && /^[A-Z0-9\-]+$/i.test(cleanText)) {
+                result.serial = cleanText;
+            } else {
+                result.part = cleanText;
+            }
+
+            return result;
         }
 
         // =============================================================
@@ -915,11 +987,13 @@
 
         // Lectura exitosa de código
         function onScanSuccess(decodedText) {
-            const parsed = parseScanResult(decodedText);
+            // Guardar la cadena de texto completa (Raw Data)
+            const parsed = parseIntelligentCode(decodedText);
 
             // Filtrar falsos positivos y ruido de decodificación
-            const isNoise = /[\=\#\+\'\$\%\&\?\"\!\*]/.test(parsed);
-            if (!parsed || parsed.length < 5 || isNoise) {
+            const cleanVal = parsed.part || parsed.serial || "";
+            const isNoise = /[\=\#\+\'\$\%\&\?\"\!\*]/.test(cleanVal);
+            if (cleanVal.length < 5 || isNoise) {
                 console.log("Falso positivo ignorado:", decodedText);
                 return; // Continuar escaneando sin molestar al usuario
             }
@@ -928,14 +1002,25 @@
             closeScanner(); // libera cámara
 
             isFromScan = true;
-            searchInput.value = parsed;
+            // Escribimos la cadena completa en la caja de búsqueda para que se procese
+            searchInput.value = decodedText;
             performSearch();
+
+            // Mensaje descriptivo al usuario sobre lo extraído
+            let infoText = "";
+            if (parsed.serial && parsed.part) {
+                infoText = `Nº Serie: ${parsed.serial}\nNº Parte: ${parsed.part}`;
+            } else if (parsed.part) {
+                infoText = `Nº Parte: ${parsed.part}`;
+            } else {
+                infoText = `Nº Serie: ${parsed.serial}`;
+            }
 
             Swal.fire({
                 icon: 'success',
                 title: 'Código Leído ✅',
-                text: `Buscando: ${parsed}`,
-                timer: 1800,
+                text: infoText,
+                timer: 2200,
                 showConfirmButton: false,
                 position: 'top',
                 toast: true
