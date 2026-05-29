@@ -979,11 +979,92 @@
             openScanner();
         };
 
+        // =============================================================
+        // AUTO-ACTUALIZADOR DESDE GITHUB RELEASES
+        // =============================================================
+        const GITHUB_CONFIG = {
+            user: "llzilkll",                  // Tu usuario real de GitHub
+            repo: "Inventario",                // Tu repositorio real en GitHub
+            currentVersion: "1.1.0"            // Versión local actual de esta app
+        };
+
+        // Compara dos versiones de formato x.y.z. Devuelve true si v2 > v1.
+        function isNewerVersion(v1, v2) {
+            const clean = v => v.replace(/^v/i, '').split('.').map(Number);
+            const a = clean(v1);
+            const b = clean(v2);
+            for (let i = 0; i < Math.max(a.length, b.length); i++) {
+                const num1 = a[i] || 0;
+                const num2 = b[i] || 0;
+                if (num2 > num1) return true;
+                if (num1 > num2) return false;
+            }
+            return false;
+        }
+
+        // Buscar actualizaciones en GitHub Releases
+        async function checkUpdates() {
+            if (GITHUB_CONFIG.user === "TU_USUARIO_DE_GITHUB") {
+                console.log("Auto-actualización: Configura tu usuario y repositorio de GitHub en el código.");
+                return;
+            }
+
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}/releases/latest`;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                
+                const release = await response.json();
+                const latestVersion = release.tag_name;
+                
+                if (isNewerVersion(GITHUB_CONFIG.currentVersion, latestVersion)) {
+                    let apkUrl = null;
+                    if (release.assets && release.assets.length > 0) {
+                        const apkAsset = release.assets.find(asset => asset.name.endsWith('.apk'));
+                        if (apkAsset) {
+                            apkUrl = apkAsset.browser_download_url;
+                        }
+                    }
+                    
+                    if (!apkUrl) {
+                        apkUrl = `https://github.com/sub/releases/latest/download/app-debug.apk`
+                            .replace('sub', `${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}`);
+                    }
+
+                    Swal.fire({
+                        title: '¡Nueva Actualización! 🚀',
+                        html: `Está disponible la versión <strong>${latestVersion}</strong> (tienes instalada la ${GITHUB_CONFIG.currentVersion}).<br><br>¿Deseas descargar e instalar la nueva versión ahora?`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Actualizar',
+                        cancelButtonText: 'Más tarde',
+                        confirmButtonColor: '#3b82f6',
+                        cancelButtonColor: '#6b7280',
+                        customClass: {
+                            popup: 'rounded-3xl dark:bg-darkCard text-slate-800 dark:text-white',
+                            title: 'font-extrabold text-lg',
+                            confirmButton: 'rounded-xl px-5 py-2.5 font-bold',
+                            cancelButton: 'rounded-xl px-5 py-2.5 font-bold'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.open(apkUrl, '_system');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Error al verificar actualizaciones:", e);
+            }
+        }
+
         // Inicializar escuchas
         function init() {
             initTheme();
             loadLocalData();
             searchInput.addEventListener('input', debounce(performSearch));
+            
+            // Verificar actualizaciones en segundo plano al iniciar
+            setTimeout(checkUpdates, 2000);
         }
 
         window.onload = init;
