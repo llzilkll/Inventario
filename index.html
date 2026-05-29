@@ -30,11 +30,19 @@
                 if (idx >= exts.length) {
                     // Ninguna extensión funcionó: ocultar el bloque de imagen
                     imgContainer.classList.add('hidden');
+                    imgContainer.setAttribute('data-has-image', 'false');
                     return;
                 }
                 imgEl.onerror = tryNext;        // si falla, probar la siguiente
                 imgEl.onload  = function() {
                     imgLoading.classList.add('hidden'); // imagen cargada: ocultar spinner
+                    imgContainer.setAttribute('data-has-image', 'true');
+                    // Ocular la foto si actualmente está seleccionado "Se usa en" (parent)
+                    if (activeTab === 'parent') {
+                        imgContainer.classList.add('hidden');
+                    } else {
+                        imgContainer.classList.remove('hidden');
+                    }
                 };
                 imgEl.src = buildUrl(exts[idx++]);
             }
@@ -43,6 +51,7 @@
             imgContainer.classList.remove('hidden');
             imgLoading.classList.remove('hidden');
             imgEl.src = '';
+            imgContainer.setAttribute('data-has-image', 'false');
             tryNext();
         };
     </script>
@@ -156,13 +165,20 @@
 
         <!-- BUSCADOR -->
         <div class="mb-5 relative">
-            <div class="relative glass-panel rounded-2xl shadow-md overflow-hidden">
-                <span class="absolute left-4 top-4 text-slate-400 text-lg">🔎</span>
+            <div class="relative glass-panel rounded-2xl shadow-md overflow-hidden flex items-center">
+                <span class="absolute left-4 top-4 text-slate-400 text-lg flex-shrink-0">🔎</span>
                 <input type="text" id="search-input" placeholder="Buscar por catálogo, descripción o parte..."
-                    class="w-full bg-transparent pl-11 pr-10 py-4 outline-none text-slate-800 dark:text-white font-medium text-sm placeholder-slate-400 dark:placeholder-slate-500">
-                <button onclick="clearSearch()" id="clear-btn" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden">
-                    ❌
-                </button>
+                    class="w-full bg-transparent pl-11 pr-24 py-4 outline-none text-slate-800 dark:text-white font-medium text-sm placeholder-slate-400 dark:placeholder-slate-500">
+                
+                <!-- Acciones integradas del buscador -->
+                <div class="absolute right-2 top-2 flex items-center gap-1">
+                    <button onclick="clearSearch()" id="clear-btn" class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-95 transition-transform hidden">
+                        ❌
+                    </button>
+                    <button onclick="openScanner()" class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center active:scale-95 transition-transform" title="Escanear código">
+                        📷
+                    </button>
+                </div>
             </div>
             
             <div class="flex items-center justify-between mt-2 px-1">
@@ -253,10 +269,25 @@
         <div id="detail-panel" class="w-full max-w-md bg-white dark:bg-darkCard rounded-t-[32px] p-6 shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col border-t border-slate-100 dark:border-slate-800">
             
             <!-- Barra de arrastre visual -->
-            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5 cursor-pointer" onclick="closeDetailModal()"></div>
+            <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4 cursor-pointer flex-shrink-0" onclick="closeDetailModal()"></div>
             
+            <!-- Imagen del Material desde Firebase (Mapeada arriba de todo) -->
+            <div id="modal-image-container" class="mb-4 hidden flex-shrink-0">
+                <div class="relative w-full rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-sm flex items-center justify-center p-1.5">
+                    <img id="modal-image" src="" alt="Foto del material"
+                        class="w-full object-contain max-h-64 h-60 rounded-xl"
+                        onerror="document.getElementById('modal-image-container').classList.add('hidden')">
+                    <div id="modal-image-loading" class="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-xl">
+                        <svg class="animate-spin h-6 w-6 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
             <!-- Encabezado del Detalle -->
-            <div class="flex justify-between items-start mb-4">
+            <div class="flex justify-between items-start mb-4 flex-shrink-0">
                 <div class="flex-1 min-w-0 pr-2">
                     <span class="text-[10px] uppercase font-bold tracking-wider text-brand-600 dark:text-brand-500">Detalle del Material</span>
                     <h2 id="modal-title" class="text-xl font-extrabold text-slate-900 dark:text-white truncate"></h2>
@@ -268,27 +299,12 @@
             </div>
 
             <!-- Descripción -->
-            <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4">
+            <div class="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 mb-4 flex-shrink-0">
                 <p id="modal-desc" class="text-sm text-slate-600 dark:text-slate-300 font-medium"></p>
             </div>
 
-            <!-- Imagen del Material desde Firebase -->
-            <div id="modal-image-container" class="mb-4 hidden">
-                <div class="relative w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <img id="modal-image" src="" alt="Foto del material"
-                        class="w-full object-contain max-h-52"
-                        onerror="document.getElementById('modal-image-container').classList.add('hidden')">
-                    <div id="modal-image-loading" class="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-                        <svg class="animate-spin h-6 w-6 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
             <!-- Tabs para Relaciones - Toque para mostrar/ocultar -->
-            <div class="flex border-b border-slate-100 dark:border-slate-800 mb-4 text-sm font-bold">
+            <div class="flex border-b border-slate-100 dark:border-slate-800 mb-4 text-sm font-bold flex-shrink-0">
                 <button onclick="switchTab('sub')" id="tab-sub" class="flex-1 pb-3 text-brand-600 dark:text-brand-500 border-b-2 border-brand-600 dark:border-brand-500 transition-colors">
                     🧩 Subcomponentes (<span id="sub-count">0</span>)
                 </button>
@@ -320,6 +336,7 @@
         let cameras = [];
         let currentCameraIndex = 0;
         let isScannerStarting = false;
+        let isScannerClosing = false; // Evita dobles cierres paralelos
         let isFromScan = false;
 
         // Elementos UI
@@ -627,6 +644,8 @@
             const subContainer = document.getElementById('subcomponents-container');
             const parentContainer = document.getElementById('parents-container');
             const tabContent = document.getElementById('tab-content-wrapper');
+            const imgContainer = document.getElementById('modal-image-container');
+            const hasImage = imgContainer.getAttribute('data-has-image') === 'true';
 
             // Si se toca el tab ya activo -> OCULTAR (toggle)
             if (activeTab === tab) {
@@ -636,6 +655,11 @@
                 subContainer.classList.add('hidden');
                 parentContainer.classList.add('hidden');
                 if (tabContent) tabContent.classList.add('hidden');
+                
+                // Mostrar la imagen de nuevo si el material tiene imagen
+                if (hasImage) {
+                    imgContainer.classList.remove('hidden');
+                }
                 return;
             }
 
@@ -648,11 +672,19 @@
                 tabParent.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
                 subContainer.classList.remove('hidden');
                 parentContainer.classList.add('hidden');
+                
+                // En Subcomponentes mostramos la imagen si existe
+                if (hasImage) {
+                    imgContainer.classList.remove('hidden');
+                }
             } else {
                 tabParent.className = "flex-1 pb-3 text-brand-600 dark:text-brand-500 border-b-2 border-brand-600 dark:border-brand-500 transition-colors";
                 tabSub.className = "flex-1 pb-3 text-slate-400 dark:text-slate-500 border-b-2 border-transparent transition-colors";
                 parentContainer.classList.remove('hidden');
                 subContainer.classList.add('hidden');
+                
+                // En "Se usa en" OCULTAMOS la imagen para leer más cómodamente
+                imgContainer.classList.add('hidden');
             }
         }
 
@@ -793,7 +825,7 @@
 
         // Abrir escáner e iniciar cámara
         window.openScanner = async function () {
-            if (isScannerStarting) return;
+            if (isScannerStarting || isScannerClosing) return;
             isScannerStarting = true;
 
             searchInput.blur();
@@ -804,9 +836,13 @@
             document.getElementById('scanner-error').classList.add('hidden');
 
             try {
-                // Siempre crear una nueva instancia limpia
+                // Configurar opciones del escáner con formatos explícitos y detector nativo
                 const formats = window.Html5QrcodeSupportedFormats;
-                const options = {};
+                const options = {
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    }
+                };
                 if (formats) {
                     options.formatsToSupport = [
                         formats.QR_CODE,
@@ -832,14 +868,19 @@
                     currentCameraIndex = backIdx !== -1 ? backIdx : 0;
                 }
 
-                // Configuración: zona de detección grande y relación 4:3
+                // Configuración HD de video, 30 FPS para lectura súper rápida
                 const config = {
-                    fps: 15,
+                    fps: 30,
                     qrbox: (w, h) => ({
                         width:  Math.round(w * 0.85),
-                        height: Math.round(h * 0.65)
+                        height: Math.round(h * 0.70)
                     }),
-                    aspectRatio: 1.333333
+                    aspectRatio: 1.777778, // Relación de aspecto 16:9 ideal
+                    videoConstraints: {
+                        facingMode: "environment",
+                        width: { min: 640, ideal: 1280, max: 1920 },
+                        height: { min: 480, ideal: 720, max: 1080 }
+                    }
                 };
 
                 const cam = cameras[currentCameraIndex];
@@ -874,10 +915,18 @@
 
         // Lectura exitosa de código
         function onScanSuccess(decodedText) {
+            const parsed = parseScanResult(decodedText);
+
+            // Filtrar falsos positivos y ruido de decodificación
+            const isNoise = /[\=\#\+\'\$\%\&\?\"\!\*]/.test(parsed);
+            if (!parsed || parsed.length < 5 || isNoise) {
+                console.log("Falso positivo ignorado:", decodedText);
+                return; // Continuar escaneando sin molestar al usuario
+            }
+
             playBeep();
             closeScanner(); // libera cámara
 
-            const parsed = parseScanResult(decodedText);
             isFromScan = true;
             searchInput.value = parsed;
             performSearch();
@@ -897,6 +946,9 @@
 
         // Cerrar y liberar la cámara por completo
         window.closeScanner = async function (isBackNav) {
+            if (isScannerClosing) return;
+            isScannerClosing = true;
+
             const modal = document.getElementById('scanner-modal');
             modal.classList.add('opacity-0');
 
@@ -909,7 +961,10 @@
                 }
             }
 
-            setTimeout(() => modal.classList.add('hidden'), 300);
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                isScannerClosing = false;
+            }, 300);
         };
 
         // Cambiar a la siguiente lente disponible
