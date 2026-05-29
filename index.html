@@ -9,37 +9,44 @@
     <script src="./js/lib/tailwind.js"></script>
     <script src="./js/lib/sweetalert2.all.min.js"></script>
     <script src="./js/lib/html5-qrcode.min.js"></script>
-    <!-- Firebase Storage SDK (solo para imágenes, requiere conexión) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+    <!-- Cargador de imágenes de Firebase Storage (URL directa, sin fetch ni SDK) -->
+    <script>
+        // Genera la URL pública de Firebase Storage para un catálogo dado.
+        // Prueba extensiones en orden: jpg → jpeg → png → webp
+        // Usa el evento onerror del <img> para pasar a la siguiente extensión.
+        // Compatible con Android WebView sin problemas de CORS.
+        window.loadMaterialImage = function(catalogo, imgEl, imgContainer, imgLoading) {
+            const bucket  = 'inventario-san-martin-pro.firebasestorage.app';
+            const folder  = 'fotos_inventario';
+            const exts    = ['jpg', 'jpeg', 'png', 'webp'];
+            let   idx     = 0;
 
-        const firebaseApp = initializeApp({
-            apiKey: "AIzaSyAZwE1BoSOdm5_C6AIGh4L66cqArpTWaX8",
-            storageBucket: "inventario-san-martin-pro.firebasestorage.app"
-        });
-        const storage = getStorage(firebaseApp);
-
-        // Exponer función global para obtener URL de imagen de Firebase Storage
-        window.getFirebaseImageUrl = async function(catalogo) {
-            try {
-                const extensions = ['jpg', 'jpeg', 'png', 'webp'];
-                for (const ext of extensions) {
-                    try {
-                        const imageRef = ref(storage, `fotos_inventario/${catalogo}.${ext}`);
-                        const url = await getDownloadURL(imageRef);
-                        return url;
-                    } catch (e) {
-                        // Probar con la siguiente extensión
-                    }
-                }
-                return null; // no existe imagen para este item
-            } catch (e) {
-                console.warn('Error accediendo Firebase Storage:', e);
-                return null;
+            function buildUrl(ext) {
+                const path = encodeURIComponent(folder + '/' + catalogo + '.' + ext);
+                return 'https://firebasestorage.googleapis.com/v0/b/' + bucket + '/o/' + path + '?alt=media';
             }
+
+            function tryNext() {
+                if (idx >= exts.length) {
+                    // Ninguna extensión funcionó: ocultar el bloque de imagen
+                    imgContainer.classList.add('hidden');
+                    return;
+                }
+                imgEl.onerror = tryNext;        // si falla, probar la siguiente
+                imgEl.onload  = function() {
+                    imgLoading.classList.add('hidden'); // imagen cargada: ocultar spinner
+                };
+                imgEl.src = buildUrl(exts[idx++]);
+            }
+
+            // Estado inicial: mostrar contenedor con spinner
+            imgContainer.classList.remove('hidden');
+            imgLoading.classList.remove('hidden');
+            imgEl.src = '';
+            tryNext();
         };
     </script>
+
     <style>
         /* Fallback de tipografía local sans-serif pero con buen interlineado y suavizado */
         body {
@@ -501,29 +508,11 @@
 
             // --- Cargar imagen desde Firebase Storage ---
             const imgContainer = document.getElementById('modal-image-container');
-            const imgEl = document.getElementById('modal-image');
-            const imgLoading = document.getElementById('modal-image-loading');
+            const imgEl        = document.getElementById('modal-image');
+            const imgLoading   = document.getElementById('modal-image-loading');
 
-            // Resetear a estado de carga
-            imgContainer.classList.remove('hidden');
-            imgLoading.classList.remove('hidden');
-            imgEl.src = '';
-
-            // Intentar obtener la URL (requiere conexión)
-            if (typeof window.getFirebaseImageUrl === 'function') {
-                window.getFirebaseImageUrl(item.catalogo).then(url => {
-                    if (url) {
-                        imgEl.src = url;
-                        imgEl.onload = () => imgLoading.classList.add('hidden');
-                        imgEl.onerror = () => imgContainer.classList.add('hidden');
-                    } else {
-                        imgContainer.classList.add('hidden');
-                    }
-                }).catch(() => imgContainer.classList.add('hidden'));
-            } else {
-                // Firebase aún no disponible (sin conexión)
-                imgContainer.classList.add('hidden');
-            }
+            // loadMaterialImage pone el src directamente y prueba extensiones con onerror
+            window.loadMaterialImage(item.catalogo, imgEl, imgContainer, imgLoading);
 
             // Cargar Relaciones
             const subcomponents = maestroComponentsData.filter(c => c.catalogo === item.catalogo);
