@@ -782,7 +782,8 @@
 
         // Algoritmo de procesamiento inteligente y extracción de datos del escaneo
         function parseIntelligentCode(text) {
-            text = text.trim();
+            // Limpiar caracteres de control no imprimibles (como Group Separators del PDF417 de Ericsson)
+            text = text.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ').trim();
             const result = {
                 raw: text,
                 serial: null,
@@ -919,6 +920,7 @@
                     options.formatsToSupport = [
                         formats.QR_CODE,
                         formats.DATA_MATRIX,
+                        formats.PDF_417,        // Habilitar lectura de etiquetas combinadas PDF417 de Ericsson
                         formats.CODE_128,
                         formats.CODE_39,
                         formats.EAN_13,
