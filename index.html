@@ -221,6 +221,22 @@
         <!-- Video de fondo a pantalla completa (manejado por html5-qrcode) -->
         <div id="reader" style="position:absolute;inset:0;"></div>
 
+        <!-- Banner para segundo escaneo Huawei -->
+        <div id="huawei-banner" class="absolute top-[100px] left-4 right-4 bg-slate-900/95 border border-brand-500/30 text-white rounded-2xl p-4 shadow-xl hidden z-[110] flex flex-col gap-2 transition-all duration-300 pointer-events-auto">
+            <div class="flex items-start gap-2">
+                <span class="text-lg mt-0.5">👉</span>
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-brand-400">Serie Huawei detectado</p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed mt-0.5 font-medium">Apuntá ahora al segundo código (debajo de la Y) para completar la búsqueda.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-1">
+                <button onclick="searchOnlySerial()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-[10px] font-bold rounded-lg transition-all">
+                    Buscar solo Serie
+                </button>
+            </div>
+        </div>
+
         <!-- Overlay oscuro con recorte de ventana de escaneo -->
         <div class="absolute inset-0 pointer-events-none" id="scan-overlay">
             <!-- Zona de escaneo centrada (rectángulo grande y claro) -->
@@ -338,6 +354,8 @@
         let isScannerStarting = false;
         let isScannerClosing = false; // Evita dobles cierres paralelos
         let isFromScan = false;
+        let tempHuaweiSerial = null;
+        let huaweiTimeout = null;
 
         // Elementos UI
         const searchInput = document.getElementById('search-input');
@@ -426,6 +444,14 @@
             };
         }
 
+        // Dividir el código de parte en sub-componentes normalizados para búsquedas exactas cruzadas
+        function getSubParts(codigoParte) {
+            if (!codigoParte) return [];
+            return codigoParte.split(/[\/\-\s]+/)
+                .map(part => part.replace(/[\s\/\-_()]/g, '').toLowerCase())
+                .filter(part => part.length > 0);
+        }
+
         // Realizar Búsqueda Inteligente y Comparación Cruzada
         function performSearch() {
             const query = searchInput.value.trim();
@@ -451,21 +477,25 @@
 
             let filtered = [];
 
-            // 1. Prioridad: Coincidencia exacta con Número de Parte / Catálogo obtenido si está disponible
+            // 1. Prioridad: Coincidencia exacta con Número de Parte (o sub-parte) / Catálogo obtenido si está disponible
             if (cleanPart) {
                 filtered = maestroData.filter(item => {
-                    const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
                     const normCat = String(item.catalogo || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
-                    return normPart === cleanPart || normCat === cleanPart;
+                    if (normCat === cleanPart) return true;
+                    
+                    const subParts = getSubParts(item.codigo_parte);
+                    return subParts.includes(cleanPart);
                 });
             }
 
-            // 2. Prioridad: Coincidencia exacta con Número de Serie obtenido (por si el serial representa un código)
+            // 2. Prioridad: Coincidencia exacta con Número de Serie obtenido (o sub-parte, por si representa un código de parte)
             if (filtered.length === 0 && cleanSerial) {
                 filtered = maestroData.filter(item => {
-                    const normPart = String(item.codigo_parte || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
                     const normCat = String(item.catalogo || '').replace(/[\s\/\-_()]/g, '').toLowerCase();
-                    return normPart === cleanSerial || normCat === cleanSerial;
+                    if (normCat === cleanSerial) return true;
+                    
+                    const subParts = getSubParts(item.codigo_parte);
+                    return subParts.includes(cleanSerial);
                 });
             }
 
@@ -510,12 +540,17 @@
             emptyState.classList.add('hidden');
             resultsCount.textContent = `${filtered.length} encontrado(s)`;
 
-            // Si es un escaneo y hay exactamente 1 resultado, abrir los detalles directamente
-            if (isFromScan && filtered.length === 1) {
+            // Si es un escaneo y hay resultados, ver si podemos abrir automáticamente
+            if (isFromScan && filtered.length > 0) {
                 isFromScan = false;
-                setTimeout(() => {
-                    openDetail(filtered[0]);
-                }, 300);
+                // Ver si todos los resultados tienen el mismo código de parte (o si es 1 solo)
+                const firstPart = filtered[0].codigo_parte;
+                const allSamePart = filtered.every(item => item.codigo_parte === firstPart);
+                if (filtered.length === 1 || allSamePart) {
+                    setTimeout(() => {
+                        openDetail(filtered[0]);
+                    }, 300);
+                }
             }
 
             // Renderizar resultados (limitado a 50 por rendimiento móvil)
@@ -987,6 +1022,21 @@
             }
         };
 
+        // Buscar solo serie en caso de cancelar o vencer el tiempo del segundo escaneo
+        window.searchOnlySerial = function() {
+            if (tempHuaweiSerial) {
+                const serial = tempHuaweiSerial;
+                tempHuaweiSerial = null;
+                if (huaweiTimeout) clearTimeout(huaweiTimeout);
+                document.getElementById('huawei-banner').classList.add('hidden');
+                
+                closeScanner();
+                isFromScan = true;
+                searchInput.value = serial;
+                performSearch();
+            }
+        };
+
         // Lectura exitosa de código
         function onScanSuccess(decodedText) {
             // Guardar la cadena de texto completa (Raw Data)
@@ -1000,6 +1050,62 @@
                 return; // Continuar escaneando sin molestar al usuario
             }
 
+            // Lógica especial para etiquetas Huawei de doble código (Serie + Parte)
+            const cleanText = decodedText.replace(/^SN:?/i, '').trim();
+            const isHuaweiSerial = /^[0-9A-Z]{20}$/i.test(cleanText) && cleanText.startsWith("21");
+
+            if (isHuaweiSerial) {
+                if (!tempHuaweiSerial) {
+                    tempHuaweiSerial = decodedText;
+                    playBeep(); // Beep inicial para indicar detección de la serie
+                    
+                    // Mostrar banner instructivo
+                    const banner = document.getElementById('huawei-banner');
+                    banner.classList.remove('hidden');
+                    
+                    // Autocierre/Autobúsqueda por inactividad tras 4 segundos
+                    if (huaweiTimeout) clearTimeout(huaweiTimeout);
+                    huaweiTimeout = setTimeout(() => {
+                        searchOnlySerial();
+                    }, 4000);
+                    return; // Retornar sin cerrar el escáner para permitir escanear el segundo código
+                }
+            }
+
+            // Si ya tenemos guardada la serie Huawei y escaneamos un segundo código (diferente)
+            if (tempHuaweiSerial) {
+                const cleanNew = decodedText.replace(/^SN:?/i, '').trim();
+                const cleanTemp = tempHuaweiSerial.replace(/^SN:?/i, '').trim();
+                if (cleanNew === cleanTemp) {
+                    return; // Ignorar lecturas repetidas de la serie
+                }
+                
+                // Combinar la serie guardada con el nuevo código (que representa la parte)
+                const combined = tempHuaweiSerial + " Y " + decodedText;
+                tempHuaweiSerial = null;
+                if (huaweiTimeout) clearTimeout(huaweiTimeout);
+                document.getElementById('huawei-banner').classList.add('hidden');
+                
+                playBeep();
+                closeScanner(); // libera cámara
+                
+                isFromScan = true;
+                searchInput.value = combined;
+                performSearch();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Etiqueta Completa ✅',
+                    text: `Serie y Parte combinados con éxito`,
+                    timer: 2200,
+                    showConfirmButton: false,
+                    position: 'top',
+                    toast: true
+                });
+                return;
+            }
+
+            // Comportamiento normal para otros códigos
             playBeep();
             closeScanner(); // libera cámara
 
@@ -1035,6 +1141,11 @@
         window.closeScanner = async function (isBackNav) {
             if (isScannerClosing) return;
             isScannerClosing = true;
+
+            // Limpiar variables de escaneo Huawei
+            tempHuaweiSerial = null;
+            if (huaweiTimeout) clearTimeout(huaweiTimeout);
+            document.getElementById('huawei-banner').classList.add('hidden');
 
             const modal = document.getElementById('scanner-modal');
             modal.classList.add('opacity-0');
@@ -1072,7 +1183,7 @@
         const GITHUB_CONFIG = {
             user: "llzilkll",                  // Tu usuario real de GitHub
             repo: "Inventario",                // Tu repositorio real en GitHub
-            currentVersion: "1.1.0"            // Versión local actual de esta app
+            currentVersion: "1.2.0"            // Versión local actual de esta app
         };
 
         // Compara dos versiones de formato x.y.z. Devuelve true si v2 > v1.
