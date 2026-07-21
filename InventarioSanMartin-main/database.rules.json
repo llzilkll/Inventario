@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "historial": {
+      ".read": "auth != null",
+      "$movId": {
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['tipo','fecha'])"
+      }
+    },
+
+    "galeria": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "GLOBAL_DEPOSITO": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "tablero_ingresos_sitios": {
+      ".read": "auth != null || true",
+      ".write": "auth != null || true"
+    },
+
+    "temp_scrap_session": { ".read": "auth != null", ".write": "auth != null" },
+    "temp_salidas_v2":    { ".read": "auth != null", ".write": "auth != null" },
+    "temp_preparaciones": { ".read": "auth != null", ".write": "auth != null" }
+  }
+}
