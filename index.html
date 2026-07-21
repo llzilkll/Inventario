@@ -3,72 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero de Ingresos de Sitios | Control por Contrato</title>
-    <meta name="description" content="Sistema de control cuantitativo por contrato (GU, RAN, MOU) y fecha para el ingreso de sitios.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Tablero de Ingresos de Sitios | GU - RAN - MOU</title>
+    <!-- Google Fonts & FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase SDK (Compat para compatibilidad con file:// y web) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="toast-container" class="toast-container"></div>
 
-    <!-- Encabezado Principal / Navbar -->
-    <header class="app-header">
-        <div class="header-container">
-            <div class="brand-group">
+    <!-- Header Navigation -->
+    <header>
+        <div class="container header-content">
+            <div class="brand">
                 <div class="brand-icon">
                     <i class="fa-solid fa-tower-cell"></i>
                 </div>
-                <div>
-                    <h1 class="brand-title">Tablero de Ingresos de Sitios</h1>
-                    <p class="brand-subtitle">Control cuantitativo por contrato (GU, RAN, MOU) y fecha</p>
+                <div class="brand-text">
+                    <h1>Tablero de Ingresos de Sitios</h1>
+                    <p>Control cuantitativo por contrato (GU, RAN, MOU) y fecha</p>
                 </div>
             </div>
-
             <div class="header-actions">
-                <!-- Indicador de Estado de Conexión Nube -->
-                <div class="cloud-badge" id="cloud-status" title="Sincronizado con Realtime Database">
-                    <i class="fa-solid fa-cloud-check"></i>
-                    <span>Nube Sincronizada</span>
-                </div>
+                <span id="cloud-status" class="badge-tag" style="background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3); padding:6px 12px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Nube Sincronizada
+                </span>
 
-                <!-- Acciones de Usuario / Login Admin -->
-                <div id="user-nav-actions" style="display: flex; align-items: center; gap: 8px;">
-                    <!-- Se genera dinámicamente desde app.js -->
-                </div>
+                <!-- Contenedor dinámico para Admin ZILKJL / Modo Lectura -->
+                <div id="user-nav-actions" style="display: inline-flex; align-items: center; gap: 8px;"></div>
 
-                <button class="btn btn-secondary btn-sm" id="btn-import" onclick="document.getElementById('file-import-json').click()">
+                <button class="btn btn-secondary btn-sm" id="btn-import" onclick="document.getElementById('file-import-json').click()" title="Importar datos cargados en tu PC">
                     <i class="fa-solid fa-file-import"></i> Importar
                 </button>
-                <input type="file" id="file-import-json" accept=".json" style="display: none;" onchange="window.importFromJSON(event)">
-
-                <button class="btn btn-secondary btn-sm" id="btn-export-json" onclick="window.exportToJSON()">
+                <input type="file" id="file-import-json" accept=".json" style="display:none;" onchange="window.importFromJSON(event)">
+                <button class="btn btn-secondary btn-sm" id="btn-export" onclick="window.exportToJSON()" title="Exportar respaldo JSON para la web">
                     <i class="fa-solid fa-file-export"></i> Respaldar JSON
                 </button>
-
-                <button class="btn btn-secondary btn-sm" id="btn-export" onclick="window.exportToCSV()">
+                <button class="btn btn-secondary btn-sm" id="btn-export-csv" onclick="window.exportToCSV()" title="Exportar reporte a CSV">
                     <i class="fa-solid fa-file-csv"></i> Exportar CSV
                 </button>
-
-                <button class="btn btn-primary" id="btn-open-modal" onclick="window.openModal()">
+                <button class="btn btn-primary" id="btn-open-modal" onclick="window.openModal()" style="display:none;">
                     <i class="fa-solid fa-plus"></i> Nuevo Ingreso
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Contenido Principal -->
-    <main class="app-container">
-        
+    <!-- Main Container -->
+    <main class="container">
+
         <!-- Barra de Filtros -->
-        <section class="section-card filter-card">
-            <div class="filter-grid">
-                <!-- Filtro por Mes -->
+        <section class="filter-bar">
+            <div class="filter-group">
+                <!-- Filtro por Mes/Año -->
                 <div class="field-container">
-                    <label class="field-label" for="filter-month">Período / Mes</label>
+                    <label class="field-label" for="filter-month">Periodo / Mes</label>
                     <select id="filter-month" class="select-style">
                         <option value="ALL">Todos los Meses</option>
                     </select>
@@ -79,9 +74,9 @@
                     <label class="field-label" for="filter-contract">Contrato</label>
                     <select id="filter-contract" class="select-style">
                         <option value="ALL">Todos los Contratos</option>
-                        <option value="GU">Contrato GU</option>
-                        <option value="RAN">Contrato RAN</option>
-                        <option value="MOU">Contrato MOU</option>
+                        <option value="GU">GU</option>
+                        <option value="RAN">RAN</option>
+                        <option value="MOU">MOU</option>
                     </select>
                 </div>
 
@@ -293,34 +288,36 @@
                         <div style="flex: 1;">
                             <input type="number" id="site-day" class="input-style form-control" min="1" max="31" placeholder="Día" required style="text-align: center; font-weight: 600;">
                         </div>
-                        <div style="flex: 1.5;">
-                            <select id="site-month" class="select-style form-control" required style="text-align: center; font-weight: 600;">
-                                <option value="01">Enero (01)</option>
-                                <option value="02">Febrero (02)</option>
-                                <option value="03">Marzo (03)</option>
-                                <option value="04">Abril (04)</option>
-                                <option value="05">Mayo (05)</option>
-                                <option value="06">Junio (06)</option>
-                                <option value="07">Julio (07)</option>
-                                <option value="08">Agosto (08)</option>
-                                <option value="09">Septiembre (09)</option>
-                                <option value="10">Octubre (10)</option>
-                                <option value="11">Noviembre (11)</option>
-                                <option value="12">Diciembre (12)</option>
+                        <span style="color: var(--text-muted); font-weight: bold;">/</span>
+                        <div style="flex: 1.6;">
+                            <select id="site-month" class="select-style form-control" required style="font-weight: 500;">
+                                <option value="01">01 - Enero</option>
+                                <option value="02">02 - Febrero</option>
+                                <option value="03">03 - Marzo</option>
+                                <option value="04">04 - Abril</option>
+                                <option value="05">05 - Mayo</option>
+                                <option value="06">06 - Junio</option>
+                                <option value="07">07 - Julio</option>
+                                <option value="08">08 - Agosto</option>
+                                <option value="09">09 - Septiembre</option>
+                                <option value="10">10 - Octubre</option>
+                                <option value="11">11 - Noviembre</option>
+                                <option value="12">12 - Diciembre</option>
                             </select>
                         </div>
-                        <div style="flex: 1;">
+                        <span style="color: var(--text-muted); font-weight: bold;">/</span>
+                        <div style="flex: 1.2;">
                             <input type="number" id="site-year" class="input-style form-control" min="2000" max="2100" placeholder="Año" required style="text-align: center; font-weight: 600;">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="site-notes">Observaciones / Detalles</label>
-                    <textarea id="site-notes" class="input-style form-control" rows="3" placeholder="Ingresa cualquier detalle u observación sobre este ingreso..."></textarea>
+                    <label class="form-label" for="site-notes">Observaciones / Notas</label>
+                    <textarea id="site-notes" class="input-style form-control" rows="3" placeholder="Información adicional sobre el desmonte o el ingreso..."></textarea>
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-modal" onclick="window.closeModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-floppy-disk"></i> Guardar Registro
@@ -330,33 +327,40 @@
         </div>
     </div>
 
-    <!-- Modal de Inicio de Sesión de Administrador -->
+    <!-- Modal Login Administrador (ZILKJL) -->
     <div class="modal-overlay" id="modal-login">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
-                <h3 class="modal-title">Acceso de Administrador</h3>
-                <button class="btn btn-secondary btn-icon-only" onclick="window.closeModal()">
+                <h3 class="modal-title"><i class="fa-solid fa-user-shield" style="color:var(--accent-indigo);"></i> Acceso Administrador</h3>
+                <button class="btn btn-secondary btn-icon-only" onclick="window.closeLoginModal()">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
+
             <form id="form-login" onsubmit="window.handleLoginSubmit(event)">
                 <div class="form-group">
-                    <label class="form-label" for="login-username">Usuario de Administrador</label>
-                    <input type="text" id="login-username" class="input-style form-control" placeholder="Ingresa tu usuario (ej: ZILKJL)" required style="font-weight: 600; text-transform: uppercase;">
+                    <label class="form-label" for="login-user">Usuario / Operador</label>
+                    <input type="text" id="login-user" class="input-style form-control" value="ZILKJL" required style="font-weight: 700; color: #818cf8;">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancelar</button>
+
+                <div class="form-group">
+                    <label class="form-label" for="login-pass">Contraseña *</label>
+                    <input type="password" id="login-pass" class="input-style form-control" placeholder="Escribe tu contraseña..." required autofocus>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.closeLoginModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                        <i class="fa-solid fa-right-to-bracket"></i> Entrar
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Firebase JS SDK v9+ CDN (Compatibilidad modular global) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script type="module" src="app.js"></script>
+    <!-- Contenedor para Notificaciones Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
 </body>
 </html>
