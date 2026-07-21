@@ -201,10 +201,17 @@
 
         <!-- Tabla Completa de Registros de Sitios -->
         <section class="section-card">
-            <div class="section-header">
+            <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                 <h2 class="section-title">
                     <i class="fa-solid fa-list-check"></i> Detalle de Sitios Ingresados
                 </h2>
+
+                <!-- Buscador directo en la tabla -->
+                <div style="position: relative; flex: 1; max-width: 380px; min-width: 220px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                    <input type="text" id="table-search" class="input-style" placeholder="Escribe el nombre o ID del sitio..." style="padding-left: 36px; height: 38px; font-size: 0.85rem; width: 100%;">
+                </div>
+
                 <span class="field-label" id="lbl-records-count">Mostrando 0 sitios</span>
             </div>
 

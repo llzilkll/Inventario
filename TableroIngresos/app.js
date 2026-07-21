@@ -43,6 +43,7 @@ function initDOM() {
         filterContract: document.getElementById('filter-contract'),
         filterStatus: document.getElementById('filter-status'),
         filterSearch: document.getElementById('filter-search'),
+        tableSearch: document.getElementById('table-search'),
         btnResetFilters: document.getElementById('btn-reset-filters'),
         
         kpiValTotal: document.getElementById('kpi-val-total'),
@@ -233,6 +234,15 @@ function initEventListeners() {
     if (DOM.filterSearch) {
         DOM.filterSearch.addEventListener('input', (e) => {
             state.filterSearch = e.target.value.toLowerCase().trim();
+            if (DOM.tableSearch) DOM.tableSearch.value = e.target.value;
+            renderApp();
+        });
+    }
+
+    if (DOM.tableSearch) {
+        DOM.tableSearch.addEventListener('input', (e) => {
+            state.filterSearch = e.target.value.toLowerCase().trim();
+            if (DOM.filterSearch) DOM.filterSearch.value = e.target.value;
             renderApp();
         });
     }
@@ -751,9 +761,12 @@ window.closeModal = function() {
 window.resetFilters = function() {
     if (DOM.filterMonth) DOM.filterMonth.value = 'ALL';
     if (DOM.filterContract) DOM.filterContract.value = 'ALL';
+    if (DOM.filterStatus) DOM.filterStatus.value = 'ALL';
     if (DOM.filterSearch) DOM.filterSearch.value = '';
+    if (DOM.tableSearch) DOM.tableSearch.value = '';
     state.filterMonth = 'ALL';
     state.filterContract = 'ALL';
+    state.filterStatus = 'ALL';
     state.filterSearch = '';
     renderApp();
     showToast("Filtros restablecidos", "success");
