@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Salidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #loc-modal {
+            transition: opacity 0.2s;
+        }
+
+        #loc-modal.hidden {
+            display: none;
+        }
+
+        .loc-card {
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .loc-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .item-row {
+            animation: slideIn 0.2s ease;
+        }
+
+        #search-results {
+            z-index: 100;
+        }
+
+        .thumb-img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+            }
+
+            header,
+            #btn-finalizar,
+            #btn-clear,
+            #btn-print,
+            .no-print {
+                display: none !important;
+            }
+
+            .search-section {
+                display: none !important;
+            }
+
+            #print-area {
+                display: block !important;
+            }
+
+            * {
+                color: black !important;
+                background: white !important;
+                border-color: #ccc !important;
+            }
+        }
+
+        #print-area {
+            display: none;
+        }
+    </style>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#4f46e5' } } } }
+    </script>
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</head>
+
+<body class="p-4 md:p-6 min-h-screen transition-colors duration-300 dark:bg-slate-900">
+
+    <div class="max-w-5xl mx-auto">
+
+        <!-- HEADER -->
+        <header
+            class="sticky top-0 z-40 bg-[#f8fafc]/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between mb-8 pb-5 border-b border-gray-200 dark:border-slate-700">
+            <div>
+                <div class="inline-flex items-center gap-2 mb-2">
+                    <div class="px-2.5 py-0.5 rounded-full bg-sky-100 border border-sky-200">
+                        <p class="text-[10px] font-bold tracking-widest text-sky-700 uppercase">Módulo de Salidas</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative no-print">
+                        <select id="order-selector" onchange="cambiarOrdenSalida(this.value)"
+                            class="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-2xl font-extrabold py-1 pl-3 pr-8 rounded-xl outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-sm">
+                        </select>
+                        <span class="absolute right-3 top-3 text-slate-400 pointer-events-none text-sm">▼</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 mt-1.5 no-print">
+                    <button onclick="crearNuevaOrdenSalida()" class="text-xs bg-sky-50 hover:bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 font-bold px-2 py-1 rounded transition border border-sky-100 dark:border-sky-800 shadow-sm">➕ Nueva</button>
+                    <button onclick="renombrarOrdenSalida()" class="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition border border-slate-200 dark:border-slate-600 shadow-sm">✏️ Renombrar</button>
+                    <button onclick="eliminarOrdenSalida()" class="text-xs bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-2 py-1 rounded transition border border-red-100 dark:border-red-900 shadow-sm">🗑️ Borrar Lista</button>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-3 flex-wrap">
+                <button onclick="toggleDarkMode()"
+                    class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-yellow-400 hover:bg-slate-50 transition shadow-sm">
+                    <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+                </button>
+                <button id="btn-print" onclick="printSalida()"
+                    class="no-print bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-2 px-4 rounded-xl transition shadow-sm flex items-center gap-2">
+                    🖨️ Imprimir
+                </button>
+                <a href="index.html"
+                    class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-2 px-4 rounded-xl transition shadow-sm flex items-center gap-2">
+                    ⬅️ Volver
+                </a>
+            </div>
+        </header>
+
+        <!-- BUSCADOR -->
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <label for="search-input"
+                    class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Buscar
+                    material</label>
+                <div class="flex items-center gap-2" id="current-pallet-container">
+                    <span
+                        class="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800 shadow-sm"
+                        id="current-pallet-indicator">📦 Palet Actual: #1</span>
+                </div>
+            </div>
+            <div class="relative">
+                <span class="absolute left-4 top-3.5 text-gray-400 text-lg">🔎</span>
+                <input type="text" id="search-input" name="search_input" placeholder="Catálogo, parte o descripción..."
+                    class="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-sky-500 dark:bg-slate-700 dark:text-white text-base transition">
+                <div id="search-results"
+                    class="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl max-h-72 overflow-y-auto shadow-2xl hidden">
+                </div>
+            </div>
+        </div>
+
+        <!-- AGREGAR POR UBICACIÓN -->
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6 font-sans">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📍</span>
+                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agregar por ubicación</span>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <span class="text-xs sm:text-sm font-extrabold text-slate-700 dark:text-slate-300">BUSCAR:</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-400 dark:text-slate-500">E</span>
+                            <input type="text" id="input-estanteria" placeholder="#" 
+                                class="w-10 text-center bg-transparent border-0 outline-none text-slate-800 dark:text-white font-extrabold text-sm focus:ring-0 p-0">
+                        </div>
+                        
+                        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-400 dark:text-slate-500">N</span>
+                            <input type="text" id="input-nivel" placeholder="#" 
+                                class="w-10 text-center bg-transparent border-0 outline-none text-slate-800 dark:text-white font-extrabold text-sm focus:ring-0 p-0">
+                        </div>
+                        
+                        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-400 dark:text-slate-500">P</span>
+                            <input type="text" id="input-posicion" placeholder="#" 
+                                class="w-10 text-center bg-transparent border-0 outline-none text-slate-800 dark:text-white font-extrabold text-sm focus:ring-0 p-0">
+                        </div>
+                        
+                        <button id="btn-ir-ubicacion" onclick="buscarYMostrarItemsDeUbicacion()" 
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2 rounded-xl transition shadow-md hover:shadow-lg active:scale-95 text-sm flex items-center gap-1 mr-2">
+                            IR
+                        </button>
+
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-500 mx-1">Ó</span>
+
+                        <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                            <span class="text-xs font-bold text-slate-400 dark:text-slate-500">📦</span>
+                            <select id="select-palet-venta" onchange="seleccionarPaletVenta(this.value)"
+                                class="bg-transparent border-0 outline-none text-slate-800 dark:text-white font-bold text-xs focus:ring-0 p-0 pr-8 cursor-pointer max-w-[160px]">
+                                <option value="">Seleccionar Palet...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTA DE ÍTEMS AGREGADOS -->
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                    <h2 class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">📋</span>
+                        Ítems a despachar
+                        <span id="items-count"
+                            class="bg-sky-100 text-sky-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </h2>
+                    <button onclick="nuevoPallet()"
+                        class="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 text-indigo-700 font-bold px-3 py-1.5 rounded-lg transition border border-indigo-100 dark:border-indigo-800 shadow-sm flex items-center gap-1"
+                        title="Empezar a agregar ítems en un palet nuevo"><span>📦</span> Agregar Palet</button>
+                    <button id="btn-toggle-sort" onclick="togglePalletSort()"
+                        class="text-xs bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:text-slate-300 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition border border-slate-200 dark:border-slate-600 shadow-sm flex items-center gap-1"
+                        title="Invertir orden de palets"><span>⇅</span> Invertir Orden</button>
+                </div>
+                <button onclick="clearAll()"
+                    class="text-xs text-red-400 hover:text-red-600 font-semibold transition hidden" id="btn-clear">🗑️
+                    Limpiar todo</button>
+            </div>
+
+            <div id="items-list">
+                <div class="text-center py-10 text-gray-400 italic text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl"
+                    id="empty-state">
+                    <div class="text-4xl mb-2">📦</div>
+                    Buscá un material para empezar
+                </div>
+            </div>
+
+            <!-- RESUMEN -->
+            <div id="summary-bar"
+                class="hidden mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
+                <span>Total unidades: <strong id="total-units" class="text-gray-900 dark:text-white">0</strong></span>
+                <span>Líneas: <strong id="total-lines" class="text-gray-900 dark:text-white">0</strong></span>
+            </div>
+        </div>
+
+        <!-- BOTÓN FINALIZAR -->
+        <div class="flex justify-end no-print">
+            <button onclick="finalizeSalida()" id="btn-finalizar"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-10 rounded-xl transition shadow-xl text-lg flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed w-full md:w-auto justify-center"
+                disabled>
+                ✅ Finalizar Salida
+            </button>
+        </div>
+    </div>
+
+    <!-- ÁREA DE IMPRESIÓN -->
+    <div id="print-area" class="p-8 max-w-3xl mx-auto">
+        <h1 style="font-size:20px;font-weight:900;margin-bottom:4px">Orden de Salida</h1>
+        <p id="print-date" style="font-size:12px;color:#666;margin-bottom:16px"></p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+                <tr style="background:#f1f5f9">
+                    <th style="padding:8px;text-align:left;border:1px solid #ccc">Catálogo</th>
+                    <th style="padding:8px;text-align:left;border:1px solid #ccc">Descripción</th>
+                    <th style="padding:8px;text-align:center;border:1px solid #ccc">Ubic.</th>
+                    <th style="padding:8px;text-align:center;border:1px solid #ccc">S/N</th>
+                    <th style="padding:8px;text-align:center;border:1px solid #ccc">Cant.</th>
+                </tr>
+            </thead>
+            <tbody id="print-body"></tbody>
+        </table>
+        <p id="print-total" style="font-size:14px;font-weight:bold;margin-top:12px"></p>
+    </div>
+
+    <!-- MODAL DE UBICACIONES -->
+    <div id="loc-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div
+            class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col border border-slate-200 dark:border-slate-700">
+            <div class="p-5 border-b border-gray-100 dark:border-slate-700">
+                <h3 class="font-bold text-gray-800 dark:text-white text-lg" id="modal-title">Ubicaciones disponibles
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5" id="modal-subtitle"></p>
+            </div>
+            <div id="loc-list" class="overflow-y-auto p-4 space-y-3 flex-1"></div>
+            <div class="p-4 border-t border-gray-100 dark:border-slate-700">
+                <button onclick="closeModal()"
+                    class="w-full py-2 rounded-xl border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 font-medium transition text-sm">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SELECCIÓN DE ÍTEMS POR UBICACIÓN -->
+    <div id="selection-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 font-sans">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeSelectionModal()"></div>
+        <div
+            class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col border border-slate-200 dark:border-slate-700 animate-[slideIn_0.2s_ease]">
+            <!-- Header -->
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-800 dark:text-white text-lg">¿Agregar ítems de <span id="selection-modal-location" class="text-indigo-600 dark:text-indigo-400"></span>?</h3>
+                    <p class="text-xs text-gray-500 mt-1">Seleccioná los ítems que deseas preparar para la salida.</p>
+                </div>
+                <button onclick="closeSelectionModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl font-bold">×</button>
+            </div>
+            
+            <!-- Seleccionar todos -->
+            <div class="px-5 py-2.5 bg-slate-50 dark:bg-slate-700/30 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <label class="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
+                    <input type="checkbox" id="selection-select-all" onchange="toggleSelectAllItems(this)" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 cursor-pointer">
+                    Seleccionar Todos
+                </label>
+                <span class="text-xs text-slate-400" id="selection-modal-count">0/0 seleccionados</span>
+            </div>
+
+            <!-- Listado de ítems -->
+            <div id="selection-items-list" class="overflow-y-auto p-5 space-y-3 flex-1">
+                <!-- Se poblará dinámicamente -->
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                <button onclick="closeSelectionModal()"
+                    class="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 font-medium transition text-sm">
+                    Cancelar
+                </button>
+                <button id="btn-confirm-selection" onclick="confirmarAgregacionSeleccionados()"
+                    class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition text-sm flex items-center justify-center gap-1.5 shadow-md">
+                    <span>✅</span> Agregar Seleccionados
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="maestro-cache.js"></script>
+    <script type="module">
+        import { app, auth, db, rtdb, appId } from './src/firebase-init.js';
+        import { protegerPagina, obtenerSesion, logout } from './src/auth.js';
+        import { addDoc, getDoc, deleteDoc, updateDoc, doc, onSnapshot, collection, serverTimestamp, query, setLogLevel, deleteField, runTransaction, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        setLogLevel('silent');
+
+        let userId = null;
+        let esAdmin = false;
+        let maestroData = [];
+        let inventoryItems = [];
+        let salidasItems = []; // items added to this exit order
+        window.currentPallet = 1;
+
+        let _modalItemsToSelect = [];
+
+        window.seleccionarPaletVenta = function(val) {
+            if (!val) return;
+            
+            // Clear Rack inputs
+            document.getElementById('input-estanteria').value = '';
+            document.getElementById('input-nivel').value = '';
+            document.getElementById('input-posicion').value = '';
+            
+            // Trigger search with the selected custom location
+            buscarYMostrarItemsDeUbicacion(val);
+            
+            // Reset dropdown select back to placeholder
+            document.getElementById('select-palet-venta').value = '';
+        }
+
+        window.actualizarSelectorPaletsVenta = function() {
+            const selectEl = document.getElementById('select-palet-venta');
+            if (!selectEl) return;
+            
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '<option value="">Seleccionar Palet...</option>';
+            
+            const availablePallets = new Set();
+            inventoryItems.forEach(item => {
+                if (isAvailable(item) && item.ubicacion) {
+                    const u = item.ubicacion.trim().toUpperCase();
+                    if (u.startsWith('PALET') || u.startsWith('V-') || u.startsWith('VENTA')) {
+                        availablePallets.add(item.ubicacion.trim());
+                    }
+                }
+            });
+            
+            Array.from(availablePallets).sort().forEach(pallet => {
+                const opt = document.createElement('option');
+                opt.value = pallet;
+                opt.textContent = pallet;
+                opt.className = 'text-slate-800 dark:text-white dark:bg-slate-700 font-bold';
+                selectEl.appendChild(opt);
+            });
+            
+            if (availablePallets.has(currentVal)) {
+                selectEl.value = currentVal;
+            }
+        }
+
+        window.buscarYMostrarItemsDeUbicacion = function(customLoc) {
+            let targetLoc = '';
+            if (customLoc) {
+                targetLoc = customLoc;
+            } else {
+                let e = document.getElementById('input-estanteria').value.trim();
+                let n = document.getElementById('input-nivel').value.trim();
+                let p = document.getElementById('input-posicion').value.trim();
+                
+                if (!e || !n || !p) {
+                    Toast.fire({ icon: 'warning', title: 'Completá E, N y P' });
+                    return;
+                }
+                
+                // Auto prefix "E" if not present
+                let estStr = e.toUpperCase();
+                if (!estStr.startsWith('E')) {
+                    estStr = 'E' + estStr;
+                }
+                
+                targetLoc = `${estStr}N${n}P${p}`;
+            }
+            
+            // Filter inventory items matching targetLoc and available
+            const matchingItems = inventoryItems.filter(item => item.ubicacion === targetLoc && isAvailable(item));
+            
+            if (matchingItems.length === 0) {
+                Swal.fire({
+                    title: 'Sin stock disponible',
+                    text: `No se encontraron ítems activos en la ubicación ${targetLoc}`,
+                    icon: 'info',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#0ea5e9'
+                });
+                return;
+            }
+            
+            // Save globally
+            _modalItemsToSelect = matchingItems;
+            
+            // Render modal location header
+            document.getElementById('selection-modal-location').textContent = targetLoc;
+            
+            // Populate list
+            const listEl = document.getElementById('selection-items-list');
+            listEl.innerHTML = '';
+            
+            matchingItems.forEach((item, index) => {
+                const parts = [];
+                if (item.numParte && item.numParte !== 'N/A') parts.push(`P/N: ${item.numParte}`);
+                if (item.numSerie && item.numSerie !== 'N/A') parts.push(`S/N: ${item.numSerie}`);
+                const extraInfo = parts.length > 0 ? parts.join(' | ') : 'Sin detalles adicionales';
+                
+                const itemRow = document.createElement('div');
+                itemRow.className = 'flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/70 transition';
+                itemRow.innerHTML = `
+                    <input type="checkbox" id="chk-item-${index}" value="${index}" checked onchange="updateSelectedCount()" 
+                        class="w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 cursor-pointer checked:bg-indigo-600 focus:ring-indigo-500 flex-shrink-0">
+                    <label for="chk-item-${index}" class="flex-1 min-w-0 cursor-pointer select-none">
+                        <p class="font-bold text-slate-800 dark:text-white text-sm truncate">${item.name}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">${extraInfo}</p>
+                    </label>
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 px-2.5 py-1 rounded-lg text-xs flex-shrink-0">
+                        x${item.cantidad || 1}
+                    </span>
+                `;
+                listEl.appendChild(itemRow);
+            });
+            
+            document.getElementById('selection-select-all').checked = true;
+            updateSelectedCount();
+            
+            // Open modal
+            document.getElementById('selection-modal').classList.remove('hidden');
+        };
+        
+        window.closeSelectionModal = function() {
+            document.getElementById('selection-modal').classList.add('hidden');
+        };
+        
+        window.toggleSelectAllItems = function(source) {
+            const checkboxes = document.querySelectorAll('#selection-items-list input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateSelectedCount();
+        };
+        
+        window.updateSelectedCount = function() {
+            const total = _modalItemsToSelect.length;
+            const checked = document.querySelectorAll('#selection-items-list input[type="checkbox"]:checked').length;
+            document.getElementById('selection-modal-count').textContent = `${checked}/${total} seleccionados`;
+            document.getElementById('selection-select-all').checked = (checked === total);
+        };
+        
+        window.confirmarAgregacionSeleccionados = async function() {
+            const checkedBoxes = document.querySelectorAll('#selection-items-list input[type="checkbox"]:checked');
+            if (checkedBoxes.length === 0) {
+                Toast.fire({ icon: 'warning', title: 'Seleccioná al menos un ítem' });
+                return;
+            }
+            
+            const selectedIndices = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+            const itemsToProcess = selectedIndices.map(idx => _modalItemsToSelect[idx]);
+            const targetLoc = document.getElementById('selection-modal-location').textContent;
+            
+            closeSelectionModal();
+            
+            const btnIr = document.getElementById('btn-ir-ubicacion');
+            if (btnIr) {
+                btnIr.disabled = true;
+                btnIr.textContent = '...';
+            }
+            
+            let addedCount = 0;
+            
+            for (const inv of itemsToProcess) {
+                const available = parseInt(inv.cantidad) || 1;
+                const itemId = String(Date.now() + Math.random());
+                const originalDocId = inv.id;
+                
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'activos', originalDocId);
+                    
+                    // We update the document in Firestore to PREPARADO
+                    await updateDoc(docRef, {
+                        status: 'PREPARADO',
+                        ubicacion: 'PREPARADO_SALIDA',
+                        _prevStatus: inv.status || 'Disponible',
+                        _prevUbicacion: inv.ubicacion || 'PISO'
+                    });
+                    
+                    // Find description/PN from maestroData if possible
+                    const maestroItem = maestroData.find(m => m.catalogo.trim().toLowerCase() === (inv.name || '').trim().toLowerCase());
+                    const desc = maestroItem ? maestroItem.descripcion : (inv.descripcion || '');
+                    const cParte = maestroItem ? maestroItem.codigo_parte : (inv.numParte || '');
+                    
+                    const newItem = {
+                        id: itemId,
+                        inventoryId: inv.id,
+                        _originalId: 'N/A',
+                        prevStatus: inv.status || 'Disponible',
+                        prevUbicacion: inv.ubicacion || 'PISO',
+                        catalogo: inv.name || '',
+                        descripcion: desc,
+                        codigoParte: cParte,
+                        ubicacion: targetLoc,
+                        numSerie: inv.numSerie || 'N/A',
+                        cantidad: available,
+                        _isPartial: false,
+                        pallet: window.currentPallet
+                    };
+                    
+                    // Clean undefined keys
+                    Object.keys(newItem).forEach(k => { if (newItem[k] === undefined) delete newItem[k]; });
+                    salidasItems.push(newItem);
+                    addedCount += available;
+                    
+                } catch (e) {
+                    console.error('Error al agregar item de posicion:', e);
+                    Toast.fire({ icon: 'error', title: `Error al procesar: ${inv.name}` });
+                }
+            }
+            
+            window.expandedPallets = window.expandedPallets || {};
+            window.expandedPallets[window.currentPallet] = true;
+            
+            saveSession();
+            
+            // Clean inputs
+            document.getElementById('input-estanteria').value = '';
+            document.getElementById('input-nivel').value = '';
+            document.getElementById('input-posicion').value = '';
+            
+            if (btnIr) {
+                btnIr.disabled = false;
+                btnIr.textContent = 'IR';
+            }
+            
+            Toast.fire({ icon: 'success', title: `✅ ${addedCount} unidades agregadas al Palet #${window.currentPallet}` });
+        };
+
+        window.nuevoPallet = function () {
+            window.currentPallet++;
+            const indicator = document.getElementById('current-pallet-indicator');
+            if (indicator) indicator.textContent = `📦 Palet Actual: #${window.currentPallet}`;
+            Toast.fire({ icon: 'info', title: `📦 Nuevo Palet #${window.currentPallet} listo` });
+        };
+
+        async function init() {
+            await loadMaestro();
+            setupSearch();
+
+            const user = await protegerPagina();
+            const sesion = await obtenerSesion(user);
+            esAdmin = sesion.admin;
+            localStorage.setItem('operario_gram', (sesion.nombre || '').toUpperCase());
+            userId = user.uid;
+
+            listenInventory();
+            loadGlobalState();
+            loadSession();
+        }
+
+        // ─── MAESTRO ─────────────────────────────────────────────────────────────────
+        async function loadMaestro() {
+            try {
+                const url = window.resolveMaestroUrl('maestro.json');
+                const raw = await window.fetchWithCache(url, 'maestro_data');
+                maestroData = raw.map(i => ({
+                    catalogo: String(i['MATERIAL'] || i['Material'] || i.catalogo || ''),
+                    descripcion: String(i['TEXTO'] || i['Texto_breve_de_material'] || i.descripcion || ''),
+                    codigo_parte: String(i['CÓDIGO DE PARTE'] || i['Part_Number'] || i.codigo_parte || ''),
+                }));
+            } catch (e) { console.error('Error maestro', e); }
+        }
+
+        // ─── INVENTORY LISTENER ───────────────────────────────────────────────────────
+        function listenInventory() {
+            const ref_ = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+            onSnapshot(query(ref_), snap => {
+                inventoryItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.actualizarSelectorPaletsVenta();
+            });
+        }
+
+        // ─── SESSION MULTI-ORDEN ──────────────────────────────────────────────────────
+
+        let gramSalidasState = {
+            orders: [{ id: 'GLOBAL', name: 'Salida Principal' }],
+            currentOrderId: localStorage.getItem('gram_salidas_current') || 'GLOBAL'
+        };
+
+        function loadGlobalState() {
+            onValue(ref(rtdb, 'temp_salidas_v2/STATE'), snap => {
+                const val = snap.val();
+                if (val && val.orders) {
+                    gramSalidasState.orders = val.orders;
+                    if (!val.orders.find(o => o.id === gramSalidasState.currentOrderId)) {
+                        gramSalidasState.currentOrderId = val.orders[0].id;
+                        localStorage.setItem('gram_salidas_current', gramSalidasState.currentOrderId);
+                        loadSession();
+                    }
+                    window.actualizarSelectorOrdenes();
+                } else {
+                    set(ref(rtdb, 'temp_salidas_v2/STATE'), { orders: gramSalidasState.orders });
+                }
+            });
+        }
+
+        let unsubscribeSession = null;
+
+        function saveGramSalidasState() {
+            set(ref(rtdb, 'temp_salidas_v2/STATE'), { orders: gramSalidasState.orders });
+            localStorage.setItem('gram_salidas_current', gramSalidasState.currentOrderId);
+            window.actualizarSelectorOrdenes();
+        }
+
+        function getDbPath(id) {
+            return id === 'GLOBAL' ? 'temp_salidas_v2/GLOBAL' : `temp_salidas_v2/orders/${id}`;
+        }
+
+        function loadSession() {
+            if (unsubscribeSession) unsubscribeSession();
+            window.actualizarSelectorOrdenes();
+            
+            let path = getDbPath(gramSalidasState.currentOrderId);
+            unsubscribeSession = onValue(ref(rtdb, path), snap => {
+                const val = snap.val();
+                if (val) {
+                    salidasItems = Array.isArray(val) ? val.filter(i => i) : Object.values(val);
+                    const maxPallet = Math.max(...salidasItems.map(i => i.pallet || 1), 1);
+                    if (maxPallet > window.currentPallet) window.currentPallet = maxPallet;
+                } else {
+                    salidasItems = [];
+                    window.currentPallet = 1;
+                }
+                const indicator = document.getElementById('current-pallet-indicator');
+                if (indicator) indicator.textContent = `📦 Palet Actual: #${window.currentPallet}`;
+                
+                window.actualizarSelectorOrdenes(); 
+                renderItems();
+            });
+        }
+
+        function saveSession() {
+            set(ref(rtdb, getDbPath(gramSalidasState.currentOrderId)), salidasItems);
+        }
+
+        window.cambiarOrdenSalida = function(id) {
+            gramSalidasState.currentOrderId = id;
+            saveGramSalidasState();
+            window.currentPallet = 1;
+            loadSession();
+        }
+
+        window.crearNuevaOrdenSalida = function() {
+            let newId = Date.now().toString();
+            gramSalidasState.orders.unshift({ id: newId, name: 'Nueva Salida' });
+            gramSalidasState.currentOrderId = newId;
+            saveGramSalidasState();
+            window.currentPallet = 1;
+            loadSession();
+        }
+
+        window.renombrarOrdenSalida = function() {
+            let order = gramSalidasState.orders.find(o => o.id === gramSalidasState.currentOrderId);
+            Swal.fire({
+                title: 'Renombrar Salida',
+                input: 'text',
+                inputValue: order.name,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar'
+            }).then(r => {
+                if (r.isConfirmed && r.value.trim()) {
+                    order.name = r.value.trim();
+                    saveGramSalidasState();
+                }
+            });
+        }
+
+        window.eliminarOrdenSalida = function() {
+            if (salidasItems.length > 0) {
+                Toast.fire({icon: 'error', title: 'Primero debes limpiar los ítems devolviéndolos (Limpiar todo)'});
+                return;
+            }
+            if (gramSalidasState.orders.length === 1) {
+                Toast.fire({icon: 'error', title: 'No puedes borrar la única salida activa'});
+                return;
+            }
+            
+            Swal.fire({
+                title: '¿Borrar esta lista?',
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Borrar'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    set(ref(rtdb, getDbPath(gramSalidasState.currentOrderId)), null); // remove from RTDB
+                    gramSalidasState.orders = gramSalidasState.orders.filter(o => o.id !== gramSalidasState.currentOrderId);
+                    gramSalidasState.currentOrderId = gramSalidasState.orders[0].id;
+                    saveGramSalidasState();
+                    loadSession();
+                    Toast.fire({ icon: 'info', title: 'Salida borrada' });
+                }
+            });
+        }
+
+        window.actualizarSelectorOrdenes = function() {
+            const sel = document.getElementById('order-selector');
+            if (!sel) return;
+            sel.innerHTML = gramSalidasState.orders.map(o => 
+                `<option value="${o.id}" ${o.id === gramSalidasState.currentOrderId ? 'selected' : ''}>
+                    ${o.name} ${o.id === gramSalidasState.currentOrderId ? `(${salidasItems.length} ítems)` : ''}
+                </option>`
+            ).join('');
+        }
+
+        // ─── SEARCH ───────────────────────────────────────────────────────────────────
+        function debounce(fn, ms = 300) {
+            let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+        }
+
+        function setupSearch() {
+            const input = document.getElementById('search-input');
+            const results = document.getElementById('search-results');
+
+            input.addEventListener('keyup', debounce(() => {
+                const q = input.value.toLowerCase().trim();
+                results.innerHTML = '';
+                if (q.length < 3) { results.classList.add('hidden'); return; }
+
+                const hits = maestroData.filter(x =>
+                    (x.catalogo + ' ' + x.codigo_parte + ' ' + x.descripcion).toLowerCase().includes(q)
+                ).slice(0, 10);
+
+                if (!hits.length) {
+                    results.innerHTML = '<div class="p-3 text-center text-gray-400 italic text-sm">Sin resultados</div>';
+                    results.classList.remove('hidden');
+                    return;
+                }
+
+                hits.forEach(item => {
+                    const cat = item.catalogo.trim().toLowerCase();
+                    const parte = item.codigo_parte.trim().toLowerCase();
+                    const stock = inventoryItems.filter(inv => isMatch(inv, cat, parte) && isAvailable(inv));
+                    const total = stock.reduce((a, i) => a + (parseInt(i.cantidad) || 1), 0);
+
+                    const div = document.createElement('div');
+                    div.className = 'p-3 border-b border-slate-100 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer flex justify-between items-center gap-3 transition';
+                    div.innerHTML = `
+                <div class="min-w-0">
+                    <p class="font-bold text-slate-800 dark:text-white text-sm truncate">${item.catalogo}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-300 truncate">${item.descripcion}</p>
+                    ${item.codigo_parte ? `<p class="text-[10px] font-mono text-slate-400">${item.codigo_parte}</p>` : ''}
+                </div>
+                <span class="flex-shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border
+                    ${total > 0 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}">
+                    Disp: ${total}
+                </span>`;
+                    div.onclick = () => {
+                        input.value = item.catalogo;
+                        results.classList.add('hidden');
+                        openLocationModal(item, stock);
+                    };
+                    results.appendChild(div);
+                });
+                results.classList.remove('hidden');
+            }));
+
+            document.addEventListener('click', e => {
+                if (!results.contains(e.target) && e.target !== document.getElementById('search-input'))
+                    results.classList.add('hidden');
+            });
+        }
+
+        function isMatch(inv, cat, parte) {
+            const name = String(inv.name || '').trim().toLowerCase();
+            const invP = String(inv.numParte || '').trim().toLowerCase();
+            const invC = String(inv.catalogo || '').trim().toLowerCase();
+            return (cat && (name === cat || invC === cat)) || (parte && (invP === parte || name === parte));
+        }
+        function isAvailable(inv) {
+            return inv.status !== 'Scrap' && inv.status !== 'PREPARADO' && inv.status !== 'DESPACHADO' && inv.ubicacion !== 'RECEPCION';
+        }
+
+        // ─── LOCATION MODAL ───────────────────────────────────────────────────────────
+        let _modalItem = null;
+
+        window.openLocationModal = function (maestroItem, stockItems) {
+            _modalItem = maestroItem;
+            document.getElementById('modal-title').textContent = maestroItem.catalogo;
+            document.getElementById('modal-subtitle').textContent = maestroItem.descripcion;
+
+            const list = document.getElementById('loc-list');
+            list.innerHTML = '';
+
+            if (!stockItems.length) {
+                list.innerHTML = '<p class="text-center text-red-500 font-semibold py-6">❌ Sin stock disponible</p>';
+                document.getElementById('loc-modal').classList.remove('hidden');
+                return;
+            }
+
+            // Group by location
+            const byLoc = {};
+            stockItems.forEach(inv => {
+                const loc = inv.ubicacion || 'PISO';
+                if (!byLoc[loc]) byLoc[loc] = { items: [], total: 0 };
+                byLoc[loc].items.push(inv);
+                byLoc[loc].total += parseInt(inv.cantidad) || 1;
+            });
+
+            Object.entries(byLoc).forEach(([loc, data]) => {
+                const card = document.createElement('div');
+                card.className = 'loc-card bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-4 flex justify-between items-center';
+                card.innerHTML = `
+            <div>
+                <p class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <span class="text-sky-500">📍</span> ${loc}
+                </p>
+                <p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">${data.total} unidades disponibles</p>
+            </div>
+            <span class="text-slate-400 text-xl">›</span>`;
+                card.onclick = () => askQuantity(loc, data.total, data.items);
+                list.appendChild(card);
+            });
+
+            document.getElementById('loc-modal').classList.remove('hidden');
+        };
+
+        window.closeModal = function () {
+            document.getElementById('loc-modal').classList.add('hidden');
+        };
+
+        async function askQuantity(loc, max, invItems) {
+            closeModal();
+            const { value, isConfirmed } = await Swal.fire({
+                title: `¿Cuántos sacás de ${loc}?`,
+                html: `<p class="text-sm text-gray-500 mb-4">Disponible: <strong class="text-emerald-600">${max}</strong> unidades</p>
+               <input id="qty-input" name="qty_input" aria-label="Cantidad a extraer" type="number" min="1" max="${max}" value="1"
+                   class="w-full text-center text-2xl font-bold border-2 border-sky-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-sky-500">`,
+                showCancelButton: true,
+                confirmButtonText: '✅ Agregar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0ea5e9',
+                cancelButtonColor: '#94a3b8',
+                focusConfirm: false,
+                didOpen: () => { document.getElementById('qty-input').select(); },
+                preConfirm: () => {
+                    const v = parseInt(document.getElementById('qty-input').value);
+                    if (!v || v < 1) { Swal.showValidationMessage('Ingresá al menos 1'); return false; }
+                    if (v > max) { Swal.showValidationMessage(`Máximo disponible: ${max}`); return false; }
+                    return v;
+                }
+            });
+
+            if (!isConfirmed || !value) return;
+
+            let remaining = value;
+            for (const inv of invItems) {
+                if (remaining <= 0) break;
+
+                const available = parseInt(inv.cantidad) || 1;
+                const take = Math.min(available, remaining);
+                const itemId = String(Date.now() + Math.random());
+                const originalDocId = inv.id;
+
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'activos', originalDocId);
+                    if (available === take) {
+                        await updateDoc(docRef, {
+                            status: 'PREPARADO',
+                            ubicacion: 'PREPARADO_SALIDA',
+                            _prevStatus: inv.status || 'Disponible',
+                            _prevUbicacion: inv.ubicacion || 'PISO'
+                        });
+                    } else {
+                        // Decremento atómico: re-lee la cantidad real y valida, evita lost update concurrente.
+                        await runTransaction(db, async (tx) => {
+                            const snap = await tx.get(docRef);
+                            const actual = parseInt(snap.data()?.cantidad) || 0;
+                            if (actual < take) throw new Error('Stock insuficiente. Refrescá e intentá de nuevo.');
+                            tx.update(docRef, { cantidad: actual - take });
+                        });
+                        const cleanData = {};
+                        for (const k in inv) {
+                            if (inv[k] !== undefined && k !== 'id') cleanData[k] = inv[k];
+                        }
+                        const newDoc = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'activos'), {
+                            ...cleanData,
+                            cantidad: take,
+                            status: 'PREPARADO',
+                            ubicacion: 'PREPARADO_SALIDA',
+                            _prevStatus: inv.status || 'Disponible',
+                            _prevUbicacion: inv.ubicacion || 'PISO',
+                            _isPartial: true,
+                            _originalId: originalDocId
+                        });
+                        inv.id = newDoc.id;
+                    }
+                } catch (e) {
+                    console.error('Error Firestore:', e);
+                    Toast.fire({ icon: 'error', title: 'Error al actualizar base de datos' });
+                    continue;
+                }
+
+                const newItem = {
+                    id: itemId,
+                    inventoryId: inv.id,
+                    _originalId: (available > take) ? originalDocId : 'N/A', // Usamos 'N/A' en vez de null para RTDB
+                    prevStatus: inv.status || 'Disponible',
+                    prevUbicacion: inv.ubicacion || 'PISO',
+                    catalogo: _modalItem.catalogo || '',
+                    descripcion: _modalItem.descripcion || '',
+                    codigoParte: _modalItem.codigo_parte || '',
+                    ubicacion: loc || '',
+                    numSerie: inv.numSerie || 'N/A',
+                    cantidad: take,
+                    _isPartial: (available > take),
+                    pallet: window.currentPallet
+                };
+
+                // Limpiar posibles undefined
+                Object.keys(newItem).forEach(k => { if (newItem[k] === undefined) delete newItem[k]; });
+                salidasItems.push(newItem);
+
+                remaining -= take;
+            }
+
+            window.expandedPallets = window.expandedPallets || {};
+            window.expandedPallets[window.currentPallet] = true;
+
+            saveSession();
+            document.getElementById('search-input').value = '';
+            Toast.fire({ icon: 'success', title: `${value} uds. preparadas para salida` });
+        };
+
+        // ─── RENDER ITEMS ─────────────────────────────────────────────────────────────
+        // Initialize expanded pallets tracking
+        window.expandedPallets = window.expandedPallets || {};
+        window.palletSortOrder = 'asc';
+
+        window.togglePalletSort = function() {
+            window.palletSortOrder = window.palletSortOrder === 'asc' ? 'desc' : 'asc';
+            const btn = document.getElementById('btn-toggle-sort');
+            if (btn) {
+                btn.innerHTML = `<span>⇅</span> Orden: ${window.palletSortOrder === 'asc' ? '1 → N' : 'N → 1'}`;
+            }
+            renderItems();
+        };
+
+        // ─── RENDER ITEMS ─────────────────────────────────────────────────────────────
+        function renderItems() {
+            const list = document.getElementById('items-list');
+            const empty = document.getElementById('empty-state');
+            const count = document.getElementById('items-count');
+            const sumBar = document.getElementById('summary-bar');
+            const btnFin = document.getElementById('btn-finalizar');
+            const btnClr = document.getElementById('btn-clear');
+
+            if (!salidasItems.length) {
+                count.textContent = '0';
+                list.innerHTML = '';
+                if (empty) empty.style.display = 'block';
+                else list.innerHTML = '<div class="text-center py-10 text-gray-400 italic text-sm border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl" id="empty-state"><div class="text-4xl mb-2">📦</div>Buscá un material para empezar</div>';
+                sumBar.classList.add('hidden');
+                btnFin.disabled = true;
+                btnClr.classList.add('hidden');
+                return;
+            }
+
+            btnFin.disabled = false;
+            btnClr.classList.remove('hidden');
+            sumBar.classList.remove('hidden');
+
+            const totalUnits = salidasItems.reduce((a, i) => a + i.cantidad, 0);
+
+            // Agrupar ítems por palet y catálogo
+            const groupedItemsMap = {};
+            salidasItems.forEach(item => {
+                const palletNum = item.pallet || 1;
+                const key = `${palletNum}||${item.catalogo}`;
+                if (!groupedItemsMap[key]) {
+                    groupedItemsMap[key] = {
+                        ...item,
+                        pallet: palletNum,
+                        ids: [item.id],
+                        totalCantidad: item.cantidad,
+                        series: new Set(),
+                        ubicaciones: [{ loc: item.ubicacion, qty: item.cantidad }]
+                    };
+                    if (item.numSerie && item.numSerie !== 'N/A' && item.numSerie !== 'S/N') {
+                        item.numSerie.split(/[,|\n/]+/).forEach(s => {
+                            if (s.trim()) groupedItemsMap[key].series.add(s.trim());
+                        });
+                    }
+                } else {
+                    groupedItemsMap[key].ids.push(item.id);
+                    groupedItemsMap[key].totalCantidad += item.cantidad;
+                    if (item.numSerie && item.numSerie !== 'N/A' && item.numSerie !== 'S/N') {
+                        item.numSerie.split(/[,|\n/]+/).forEach(s => {
+                            if (s.trim()) groupedItemsMap[key].series.add(s.trim());
+                        });
+                    }
+                    if (!groupedItemsMap[key].foto && item.foto) {
+                        groupedItemsMap[key].foto = item.foto;
+                    }
+                    
+                    const existingLoc = groupedItemsMap[key].ubicaciones.find(u => u.loc === item.ubicacion);
+                    if (existingLoc) {
+                        existingLoc.qty += item.cantidad;
+                    } else {
+                        groupedItemsMap[key].ubicaciones.push({ loc: item.ubicacion, qty: item.cantidad });
+                    }
+                }
+            });
+
+            const groupedItems = Object.values(groupedItemsMap).map(g => {
+                return {
+                    ...g,
+                    series: Array.from(g.series)
+                };
+            });
+            groupedItems.sort((a, b) => window.palletSortOrder === 'desc' ? b.pallet - a.pallet : a.pallet - b.pallet);
+
+            count.textContent = totalUnits;
+            document.getElementById('total-units').textContent = totalUnits;
+            document.getElementById('total-lines').textContent = groupedItems.length;
+
+            list.innerHTML = '';
+
+            // Agrupar por palet
+            const palletsMap = {};
+            groupedItems.forEach(group => {
+                const p = group.pallet;
+                if (!palletsMap[p]) {
+                    palletsMap[p] = {
+                        palletNum: p,
+                        items: [],
+                        totalUnits: 0
+                    };
+                }
+                palletsMap[p].items.push(group);
+                palletsMap[p].totalUnits += group.totalCantidad;
+            });
+
+            const sortedPallets = Object.values(palletsMap).sort((a, b) => window.palletSortOrder === 'desc' ? b.palletNum - a.palletNum : a.palletNum - b.palletNum);
+
+            sortedPallets.forEach(palletGroup => {
+                const palletNum = palletGroup.palletNum;
+                const isExpanded = !!window.expandedPallets[palletNum];
+
+                const palletContainer = document.createElement('div');
+                palletContainer.className = 'pallet-group mb-4 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm bg-slate-50 dark:bg-slate-800/30';
+                
+                const header = document.createElement('button');
+                header.type = 'button';
+                header.className = 'w-full flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-xs transition duration-150 cursor-pointer select-none';
+                header.onclick = () => {
+                    window.expandedPallets[palletNum] = !isExpanded;
+                    renderItems();
+                };
+
+                const linesCount = palletGroup.items.length;
+                const unitsCount = palletGroup.totalUnits;
+                
+                header.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span>📦 Palet #${palletNum}</span>
+                        <span class="normal-case text-[10px] px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 font-bold ml-2">
+                            ${linesCount} ${linesCount === 1 ? 'ítem' : 'ítems'} — ${unitsCount} ${unitsCount === 1 ? 'unidad' : 'unidades'}
+                        </span>
+                    </div>
+                    <svg class="w-4 h-4 text-slate-500 dark:text-slate-400 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                `;
+                palletContainer.appendChild(header);
+
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = `p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/60 ${isExpanded ? 'block' : 'hidden'}`;
+
+                palletGroup.items.forEach(group => {
+                    const seriesText = group.series.length > 0 ? group.series.join(', ') : 'N/A';
+                    const fotoIdToPass = group.ids[0];
+
+                    const row = document.createElement('div');
+                    row.className = 'item-row flex items-start gap-3 p-3 bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-sm';
+                    const fotoHtml = group.foto
+                        ? `<img src="${group.foto}" class="thumb-img" onclick="viewFoto('${fotoIdToPass}')" title="Ver foto">`
+                        : `<button onclick="addFoto('${fotoIdToPass}')" class="w-12 h-12 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:border-sky-400 hover:text-sky-500 transition flex items-center justify-center text-lg" title="Agregar foto">📷</button>`;
+                    
+                    const locsHtml = group.ubicaciones.map(u => `
+                        <span class="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">📍 Orig: ${u.loc} (x${u.qty})</span>
+                    `).join('');
+
+                    row.innerHTML = `
+                        ${fotoHtml}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-gray-800 dark:text-white text-sm">${group.catalogo}</span>
+                                <span class="bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 font-bold px-2 py-0.5 rounded-full text-xs">×${group.totalCantidad}</span>
+                                <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">📦 PREPARADO_SALIDA</span>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">${group.descripcion}</p>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                ${locsHtml}
+                                ${seriesText !== 'N/A' ? `<span class="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">S/N: ${seriesText}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="removeGroup('${group.ids.join(',')}')" class="flex-shrink-0 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition" title="Quitar">🗑️</button>
+                    `;
+                    itemsContainer.appendChild(row);
+                });
+
+                palletContainer.appendChild(itemsContainer);
+                list.appendChild(palletContainer);
+            });
+        }
+
+        // ─── REVERTIR ÍTEM EN FIRESTORE ───────────────────────────────────────────────
+        async function revertItem(item) {
+            if (!item.inventoryId) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'activos', item.inventoryId);
+
+                // LÓGICA DE MERGE SI FUE PARCIAL
+                if (item._isPartial && item._originalId && item._originalId !== 'N/A') {
+                    const origRef = doc(db, 'artifacts', appId, 'public', 'data', 'activos', item._originalId);
+                    const origSnap = await getDoc(origRef);
+                    if (origSnap.exists()) {
+                        await updateDoc(origRef, { cantidad: increment(item.cantidad) });
+                        await deleteDoc(docRef);
+                        return;
+                    }
+                }
+
+                // Reversión normal
+                await updateDoc(docRef, {
+                    status: item.prevStatus || 'Disponible',
+                    ubicacion: item.prevUbicacion || 'PISO',
+                    _prevStatus: deleteField(),
+                    _prevUbicacion: deleteField()
+                });
+            } catch (e) {
+                console.error('Error al revertir:', e);
+                Toast.fire({ icon: 'error', title: 'No se pudo devolver al inventario' });
+            }
+        }
+
+        // ─── ACTIONS ─────────────────────────────────────────────────────────────────
+        window.removeItem = async function (id) {
+            const item = salidasItems.find(i => String(i.id) === String(id));
+            if (item) await revertItem(item);
+            salidasItems = salidasItems.filter(i => String(i.id) !== String(id));
+            saveSession();
+            Toast.fire({ icon: 'info', title: 'Ítem devuelto a su ubicación original' });
+        };
+
+        window.removeGroup = async function (idsStr) {
+            const ids = idsStr.split(',');
+            for (const id of ids) {
+                const item = salidasItems.find(i => String(i.id) === String(id));
+                if (item) await revertItem(item);
+            }
+            salidasItems = salidasItems.filter(i => !ids.includes(String(i.id)));
+            saveSession();
+            Toast.fire({ icon: 'info', title: 'Ítems devueltos a su ubicación original' });
+        };
+
+        window.clearAll = async function () {
+            const ok = await Swal.fire({ title: '¿Limpiar todo?', text: 'Los ítems volverán a sus ubicaciones originales.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, limpiar' });
+            if (ok.isConfirmed) {
+                await Promise.all(salidasItems.map(revertItem));
+                salidasItems = [];
+                window.currentPallet = 1;
+                const indicator = document.getElementById('current-pallet-indicator');
+                if (indicator) indicator.textContent = `📦 Palet Actual: #${window.currentPallet}`;
+                saveSession();
+            }
+        };
+
+        // ─── FOTOS ────────────────────────────────────────────────────────────────────
+        window.addFoto = function (id) {
+            const inp = document.createElement('input');
+            inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+            inp.onchange = async (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const c = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > 900 || h > 900) { if (w > h) { h *= 900 / w; w = 900 } else { w *= 900 / h; h = 900 } }
+                        c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const b64 = c.toDataURL('image/jpeg', 0.75);
+                        const item = salidasItems.find(i => String(i.id) === String(id));
+                        if (item) { item.foto = b64; saveSession(); }
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+            inp.click();
+        };
+
+        window.viewFoto = function (id) {
+            const item = salidasItems.find(i => String(i.id) === String(id));
+            if (!item || !item.foto) return;
+            Swal.fire({
+                imageUrl: item.foto, imageAlt: item.catalogo, title: item.catalogo, width: 600,
+                showCancelButton: true, cancelButtonText: 'Cerrar', confirmButtonText: '🗑️ Borrar foto', confirmButtonColor: '#ef4444'
+            })
+                .then(r => { if (r.isConfirmed) { item.foto = null; saveSession(); } });
+        };
+
+        // ─── IMPRIMIR ─────────────────────────────────────────────────────────────────
+        window.printSalida = function () {
+            if (!salidasItems.length) { Toast.fire({ icon: 'warning', title: 'No hay ítems para imprimir' }); return; }
+
+            const groupedItemsMap = {};
+            salidasItems.forEach(item => {
+                const palletNum = item.pallet || 1;
+                const key = `${palletNum}||${item.catalogo}`;
+                if (!groupedItemsMap[key]) {
+                    groupedItemsMap[key] = {
+                        ...item,
+                        pallet: palletNum,
+                        totalCantidad: item.cantidad,
+                        series: new Set(),
+                        ubicaciones: [{ loc: item.ubicacion, qty: item.cantidad }]
+                    };
+                    if (item.numSerie && item.numSerie !== 'N/A' && item.numSerie !== 'S/N') {
+                        item.numSerie.split(/[,|\n/]+/).forEach(s => {
+                            if (s.trim()) groupedItemsMap[key].series.add(s.trim());
+                        });
+                    }
+                } else {
+                    groupedItemsMap[key].totalCantidad += item.cantidad;
+                    if (item.numSerie && item.numSerie !== 'N/A' && item.numSerie !== 'S/N') {
+                        item.numSerie.split(/[,|\n/]+/).forEach(s => {
+                            if (s.trim()) groupedItemsMap[key].series.add(s.trim());
+                        });
+                    }
+                    const existingLoc = groupedItemsMap[key].ubicaciones.find(u => u.loc === item.ubicacion);
+                    if (existingLoc) {
+                        existingLoc.qty += item.cantidad;
+                    } else {
+                        groupedItemsMap[key].ubicaciones.push({ loc: item.ubicacion, qty: item.cantidad });
+                    }
+                }
+            });
+
+            const groupedItems = Object.values(groupedItemsMap).map(g => {
+                return {
+                    ...g,
+                    series: Array.from(g.series)
+                };
+            });
+            groupedItems.sort((a, b) => a.pallet - b.pallet);
+
+            let printTbody = '';
+            let currentPalletPrint = -1;
+            groupedItems.forEach(group => {
+                if (group.pallet !== currentPalletPrint) {
+                    currentPalletPrint = group.pallet;
+                    printTbody += `<tr><td colspan="5" style="background-color:#e2e8f0; font-weight:bold; text-align:center; font-size:12px;">📦 PALET #${group.pallet}</td></tr>`;
+                }
+                const locsText = group.ubicaciones.map(u => `${u.loc} (x${u.qty})`).join(', ');
+                printTbody += `
+                    <tr>
+                        <td>${group.catalogo}</td>
+                        <td>${group.descripcion}</td>
+                        <td>${locsText}</td>
+                        <td>${group.series.length > 0 ? group.series.join(', ') : 'S/N'}</td>
+                        <td>${group.totalCantidad}</td>
+                    </tr>
+                `;
+            });
+
+            const printableHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Orden de Salida - ${new Date().toLocaleDateString()}</title>
+                <style>
+                    body { font-family: 'Inter', sans-serif; padding: 20px; color: #333; }
+                    h1 { font-size: 24px; margin-bottom: 5px; }
+                    .date { font-size: 14px; color: #666; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; font-size: 13px; }
+                    th { background-color: #f1f5f9; font-weight: bold; }
+                    .total { margin-top: 20px; font-weight: bold; font-size: 16px; border-top: 2px solid #333; padding-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <h1>Orden de Salida</h1>
+                <div class="date">Fecha: ${new Date().toLocaleString('es-AR')}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Catálogo</th>
+                            <th>Descripción</th>
+                            <th>Ubic. Original</th>
+                            <th>Nº Serie</th>
+                            <th>Cant.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${printTbody}
+                    </tbody>
+                </table>
+                <div class="total">
+                    Total: ${groupedItems.length} líneas — ${groupedItems.reduce((a, i) => a + i.totalCantidad, 0)} unidades
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    };
+                <\/script>
+            </body>
+            </html>`;
+
+            const printWin = window.open('', '_blank');
+            printWin.document.write(printableHTML);
+            printWin.document.close();
+        };
+
+        window.finalizeSalida = async function () {
+            if (!salidasItems.length) return;
+
+            const ok = await Swal.fire({
+                title: '¿Finalizar salida?',
+                html: `<p class="text-gray-600">Se registrarán <strong>${salidasItems.length}</strong> líneas con <strong>${salidasItems.reduce((a, i) => a + i.cantidad, 0)}</strong> unidades totales.</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: '✅ Confirmar',
+                cancelButtonText: 'Cancelar'
+            });
+            if (!ok.isConfirmed) return;
+
+            try {
+                const orderObj = gramSalidasState.orders.find(o => o.id === gramSalidasState.currentOrderId);
+                const orderName = orderObj ? orderObj.name : 'Salida Principal';
+
+                const col = collection(db, 'artifacts', appId, 'public', 'data', 'ordenes_salida');
+                await addDoc(col, {
+                    orderId: `SALIDA-${Date.now()}`,
+                    nombreOrden: orderName,
+                    createdAt: serverTimestamp(),
+                    items: salidasItems.map(i => ({
+                        inventoryId: i.inventoryId,
+                        catalogo: i.catalogo,
+                        descripcion: i.descripcion,
+                        codigoParte: i.codigoParte,
+                        ubicacion: i.ubicacion,
+                        numSerie: i.numSerie,
+                        cantidad: i.cantidad,
+                        pallet: i.pallet || 1
+                    })),
+                    totalItems: salidasItems.reduce((a, i) => a + i.cantidad, 0),
+                    totalLineas: salidasItems.length,
+                    operario_gram: localStorage.getItem('operario_gram') || 'DESCONOCIDO'
+                });
+
+                // Eliminar físicamente los ítems del inventario activo (ya no quedan en PREPARADO_SALIDA)
+                for (const item of salidasItems) {
+                    if (item.inventoryId) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'activos', item.inventoryId));
+                        } catch (err) {
+                            console.error("Error al eliminar item del inventario activo:", err);
+                        }
+                    }
+                }
+
+                await set(ref(rtdb, getDbPath(gramSalidasState.currentOrderId)), null);
+                
+                if (gramSalidasState.currentOrderId !== 'GLOBAL') {
+                    gramSalidasState.orders = gramSalidasState.orders.filter(o => o.id !== gramSalidasState.currentOrderId);
+                    if (gramSalidasState.orders.length === 0) {
+                        gramSalidasState.orders = [{ id: 'GLOBAL', name: 'Salida Principal' }];
+                    }
+                    gramSalidasState.currentOrderId = gramSalidasState.orders[0].id;
+                    saveGramSalidasState();
+                    loadSession();
+                } else {
+                    salidasItems = [];
+                    window.currentPallet = 1;
+                    const indicator = document.getElementById('current-pallet-indicator');
+                    if (indicator) indicator.textContent = `📦 Palet Actual: #${window.currentPallet}`;
+                    renderItems();
+                }
+
+                Toast.fire({ icon: 'success', title: '✅ Salida registrada correctamente' });
+            } catch (e) {
+                console.error(e);
+                Toast.fire({ icon: 'error', title: 'Error al guardar. Revisá la consola.' });
+            }
+        };
+
+        // ─── TOAST ────────────────────────────────────────────────────────────────────
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+
+        // ─── START ────────────────────────────────────────────────────────────────────
+        init();
+    </script>
+</body>
+
+</html>

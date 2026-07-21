@@ -1,0 +1,10 @@
+node_modules/
+functions/node_modules/
+.firebase/
+*-debug.log
+firebase-debug.log
+
+# Datos sensibles: no versionar
+usuarios.seed.json
+serviceAccountKey.json
+*.serviceaccount.json

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliador de Materiales</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <img src="icons/icon-192.png" alt="Conciliador Logo" class="brand-logo-img">
+                <div>
+                    <h1>Conciliador de Materiales</h1>
+                    <p>Conciliación 100% Offline de Excel Telefónica vs. Reporte de Control</p>
+                </div>
+            </div>
+            <button id="install-btn" class="btn btn-secondary">
+                <i class="fa-solid fa-download"></i>
+                Instalar
+            </button>
+        </header>
+
+        <!-- Contenedor Principal de la App -->
+        <main id="main-content">
+            <!-- Bienvenido / Guía rápida -->
+            <div class="welcome-card" id="welcome-panel">
+                <h2>Conciliación Inteligente con Copiar y Pegar</h2>
+                <p>Cruza las cantidades que te envía Telefónica contra tu Reporte de Control de forma 100% local, privada y segura (sin conexión a Firebase).</p>
+                
+                <div class="steps-list">
+                    <div class="step-item">
+                        <div class="step-num">1</div>
+                        <div class="step-text">
+                            <h4>Copia el Reporte</h4>
+                            <p>En tu PWA de inventario, selecciona la tabla del reporte de control de tu sitio, presiona <strong>Ctrl + C</strong> para copiarla.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">2</div>
+                        <div class="step-text">
+                            <h4>Pégalo en el Cuadro</h4>
+                            <p>Pega los datos con <strong>Ctrl + V</strong> en la caja de la izquierda. El sistema los estructurará automáticamente.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-num">3</div>
+                        <div class="step-text">
+                            <h4>Carga el Excel</h4>
+                            <p>Arrastra el archivo de Telefónica a la derecha. El sistema calculará diferencias y discrepancias al instante.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layout Principal: Selección y Carga -->
+            <div class="upload-and-select-section">
+                <!-- Columna Izquierda: Pegado del Reporte de Control -->
+                <div class="site-selector-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-clipboard-check" style="color: #818cf8; margin-right: 6px;"></i> Reporte de Control</h3>
+                        <div class="selected-badge" id="paste-rows-count">0 filas</div>
+                    </div>
+                    <p style="font-size: 0.825rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                        Selecciona y copia la tabla de materiales en tu PWA de inventario (Ctrl+C) y pégala aquí abajo (Ctrl+V):
+                    </p>
+                    
+                    <div class="paste-area-wrapper">
+                        <textarea id="control-paste-area" class="paste-textarea" placeholder="Pega aquí el reporte del sitio con sus columnas (Sitio, Código, Descripción, Estado, Cantidad)..."></textarea>
+                    </div>
+                    
+                    <div id="paste-status-msg" class="paste-status status-waiting">
+                        Esperando pegado de datos...
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Dropzone para Archivo Telefónica -->
+                <div class="drop-zone" id="drop-zone-general">
+                    <div class="drop-zone-icon">
+                        <i class="fa-solid fa-file-excel" style="font-size: 2.5rem; color: #818cf8;"></i>
+                    </div>
+                    <div class="drop-zone-text">
+                        <h3 id="general-title">Archivo Excel de Telefónica</h3>
+                        <p>Arrastra aquí tu Excel o haz clic para seleccionarlo</p>
+                    </div>
+                    <div class="file-info" id="general-file-info" style="display: none;">Ningún archivo seleccionado</div>
+                    <input type="file" id="input-general" class="hidden-input" accept=".xlsx, .xls, .csv">
+                </div>
+            </div>
+
+            <!-- Mapeador manual de pestañas (Para seleccionar la pestaña del Excel) -->
+            <div class="sheet-mapping-panel" id="mapping-panel">
+                <h4 class="mapping-title">Configuración de Hoja del Excel</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                    No pudimos detectar la pestaña del archivo Excel por su nombre por defecto ("Planilla Gral."). Por favor selecciona cuál es la pestaña que contiene los datos de Telefónica:
+                </p>
+                <div class="sheet-selector-group">
+                    <div class="selector-field">
+                        <label for="select-sheet-general">Pestaña con datos de Telefónica:</label>
+                        <select id="select-sheet-general">
+                            <option value="">-- Seleccionar Hoja --</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                    <button id="btn-run-manual-mapping" class="btn">
+                        <i class="fa-solid fa-cogs"></i> Procesar Hoja Seleccionada
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard de métricas rápidas -->
+            <div class="dashboard-grid" id="metrics-panel" style="display: none;">
+                <div class="kpi-card match">
+                    <div class="kpi-label">Coincidencias</div>
+                    <div class="kpi-value" id="kpi-coincidencias">0</div>
+                </div>
+                <div class="kpi-card discrepancy">
+                    <div class="kpi-label">Discrepancias</div>
+                    <div class="kpi-value" id="kpi-discrepancias">0</div>
+                </div>
+                <div class="kpi-card missing">
+                    <div class="kpi-label">Faltan en Inventario</div>
+                    <div class="kpi-value" id="kpi-faltantes">0</div>
+                </div>
+                <div class="kpi-card excess">
+                    <div class="kpi-label">Sobran en Inventario</div>
+                    <div class="kpi-value" id="kpi-sobrantes">0</div>
+                </div>
+            </div>
+
+            <!-- Sección de resultados -->
+            <div class="results-container" id="results-panel">
+                <div class="results-header">
+                    <!-- Pestañas de filtrado de tablas -->
+                    <div class="tabs" role="tablist">
+                        <button class="tab-btn active" data-tab="discrepancias" role="tab">
+                            Discrepancias <span class="tab-badge" id="badge-discrepancias">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="faltantes" role="tab">
+                            Faltan en Inv. <span class="tab-badge" id="badge-faltantes">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="sobrantes" role="tab">
+                            Sobran en Inv. <span class="tab-badge" id="badge-sobrantes">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="coinciden" role="tab">
+                            Coinciden <span class="tab-badge" id="badge-coinciden">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="todos" role="tab">
+                            Todos los Items <span class="tab-badge" id="badge-todos">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Buscador y Acciones -->
+                    <div class="utility-bar">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-input" class="search-input" placeholder="Buscar por código, descripción, sitio...">
+                        </div>
+                        <button id="btn-copy" class="btn btn-success">
+                            <i class="fa-solid fa-copy"></i>
+                            Copiar Tabla
+                        </button>
+                        <button id="btn-reset" class="btn btn-secondary">
+                            <i class="fa-solid fa-rotate"></i>
+                            Nueva Conciliación
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de datos -->
+                <div class="table-wrapper">
+                    <table id="results-table">
+                        <thead>
+                            <tr id="table-headers">
+                                <!-- Los headers se generarán dinámicamente -->
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- El cuerpo se generará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast de Notificación -->
+    <div id="toast" class="toast">
+        <span id="toast-icon">✓</span>
+        <span id="toast-message">Datos copiados correctamente</span>
+    </div>
+
+    <!-- Lector de Excel SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Script principal de la aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>

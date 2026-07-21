@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consola de Publicación de Stock - GRAM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; /* slate-900 */ }
+        
+        /* Scrollbar oculto para un diseño más limpio */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4f46e5',
+                        'primary-light': '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="p-4 md:p-8 min-h-screen text-slate-200">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-slate-800">
+            <div>
+                <div class="inline-flex items-center gap-2 mb-2">
+                    <div class="px-2.5 py-0.5 rounded-full bg-indigo-900/50 border border-indigo-700/50">
+                        <p class="text-[10px] font-bold tracking-widest text-indigo-400 uppercase">Acceso Restringido - Admin</p>
+                    </div>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+                    Armado de Publicación <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-light">GRAM</span>
+                </h1>
+                <p class="text-sm text-slate-400 mt-1">Buscá, seleccioná y consolidá stock activo (Familia 4000).</p>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex flex-col md:flex-row items-center gap-3">
+                <button id="btnExportExcel" onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-sm whitespace-nowrap flex items-center gap-2">
+                    <span>📊</span> Exportar Lista Armada a Excel (con Fotos)
+                </button>
+                <button onclick="clearList()" class="bg-red-600 hover:bg-red-500 border border-red-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-sm whitespace-nowrap flex items-center gap-2">
+                    <span>🗑️</span> Limpiar Lista
+                </button>
+                <a href="index.html" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-sm whitespace-nowrap flex items-center gap-2">
+                    <span>⬅️</span> Volver
+                </a>
+            </div>
+        </header>
+
+        <!-- ÁREA PRINCIPAL -->
+        <main>
+            <!-- BUSCADOR DE SELECCIÓN -->
+            <div class="mb-8 relative max-w-2xl mx-auto z-40">
+                <input type="text" id="searchInput" placeholder="Escriba el código 4000... para buscar en el depósito" autocomplete="off" class="w-full pl-12 pr-4 py-3.5 bg-slate-800/80 border-2 border-slate-700 text-white rounded-2xl outline-none focus:border-indigo-500 shadow-xl transition-all font-medium backdrop-blur-sm text-lg">
+                <span class="absolute left-4 top-3.5 text-xl">🔎</span>
+                <!-- Contenedor Resultados -->
+                <div id="searchResults" class="absolute left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-y-auto max-h-[400px] hidden divide-y divide-slate-700"></div>
+            </div>
+
+            <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 shadow-xl backdrop-blur-sm min-h-[500px]">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-white flex items-center">
+                        <span class="w-8 h-8 rounded-lg bg-emerald-900/50 text-emerald-400 flex items-center justify-center mr-3 text-lg">📝</span>
+                        Lista para Publicar
+                    </h2>
+                    <div class="text-sm text-slate-400 font-medium">
+                        Catálogos Consolidados: <span id="totalModelsCount" class="text-emerald-400 font-bold">0</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-700 shadow-sm no-scrollbar">
+                    <table class="w-full text-sm text-left text-slate-300 bg-slate-800">
+                        <thead class="text-xs text-slate-400 uppercase bg-slate-900/80 border-b border-slate-700">
+                            <tr>
+                                <th class="px-6 py-4 w-16 text-center">Foto</th>
+                                <th class="px-6 py-4">Catálogo / Modelo</th>
+                                <th class="px-6 py-4">Descripción Oficial</th>
+                                <th class="px-6 py-4 text-center">Cant. Total</th>
+                                <th class="px-6 py-4">Desglose de Estados</th>
+                                <th class="px-6 py-4 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="publicacion-table-body" class="divide-y divide-slate-700/50">
+                            <tr>
+                                <td colspan="6" class="text-center py-12 text-slate-500 italic">
+                                    <div class="animate-pulse flex flex-col items-center justify-center">
+                                        <span class="text-3xl mb-2">⏳</span>
+                                        Sincronizando consola con la nube...
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL DE IMAGEN -->
+    <div id="imageModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity" onclick="closeImageModal()">
+        <div class="relative max-w-4xl mx-auto flex items-center justify-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-slate-300 text-4xl font-bold transition drop-shadow-md">&times;</button>
+            <img id="modalImg" src="" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain border-4 border-slate-700 bg-white">
+        </div>
+    </div>
+
+    <script src="maestro-cache.js"></script>
+    <script type="module">
+        import { db, rtdb, appId } from './src/firebase-init.js';
+        import { protegerPagina, obtenerSesion, logout } from './src/auth.js';
+        import { onSnapshot, collection, query, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { ref, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        let esAdmin = false;
+        let maestroData = [];
+        let galleryMap = {};
+        let inventoryItems = []; // Snapshot vivo del stock
+        let selectedIds = [];    // IDs persistidos en publicaciones_armadas
+
+        // Helper de Sanitización de Nombres (Crucial para buscar la foto correcta en RTDB)
+        function sanitizeFilename(name) {
+            return String(name).normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+                       .replace(/\s+/g, '_') 
+                       .replace(/[^a-zA-Z0-9_]/g, '') 
+                       .toLowerCase();
+        }
+
+        async function initApp() {
+            try {
+                // 1. Cargar Maestro
+                const url = window.resolveMaestroUrl('maestro.json');
+                const rawMaestro = await window.fetchWithCache(url, 'maestro_data');
+                maestroData = rawMaestro.map(item => ({
+                    catalogo: String(item['MATERIAL'] || item['Material'] || item.catalogo || ''),
+                    descripcion: String(item['TEXTO'] || item['Texto_breve_de_material'] || item.descripcion || ''),
+                    codigo_parte: String(item['CÓDIGO DE PARTE'] || item['Part_Number'] || item.codigo_parte || '')
+                }));
+                
+                // 2. Verificar sesión (solo administradores)
+                const user = await protegerPagina({ soloAdmin: true });
+                const sesion = await obtenerSesion(user);
+                esAdmin = sesion.admin;
+                localStorage.setItem('operario_gram', (sesion.nombre || '').toUpperCase());
+
+                setupGalleryListener();
+                setupLiveListeners();
+
+                // Evento click afuera del buscador
+                document.addEventListener('click', (e) => {
+                    const input = document.getElementById('searchInput');
+                    const results = document.getElementById('searchResults');
+                    if (!input.contains(e.target) && !results.contains(e.target)) {
+                        results.classList.add('hidden');
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error iniciando aplicación: ", err);
+            }
+        }
+
+        function setupGalleryListener() {
+            const galleryRef = ref(rtdb, 'galeria');
+            onValue(galleryRef, (snapshot) => {
+                galleryMap = snapshot.val() || {};
+                renderBottomTable(); // Actualizar miniaturas en vivo
+            });
+        }
+
+        function setupLiveListeners() {
+            const activosRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+            const pubRef = doc(db, 'artifacts', appId, 'public', 'data', 'publicaciones_armadas', 'actual');
+            
+            // 1. Escuchar la Lista Consolidada Guardada
+            onSnapshot(pubRef, (snap) => {
+                if (snap.exists()) {
+                    selectedIds = snap.data().itemIds || [];
+                } else {
+                    selectedIds = [];
+                }
+                renderBottomTable();
+            });
+
+            // 2. Escuchar el Inventario Activo (Silenciosamente)
+            onSnapshot(query(activosRef), (snap) => {
+                inventoryItems = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                renderBottomTable(); 
+            });
+        }
+
+        // --- BÚSQUEDA Y AGREGADO ---
+        window.searchItems = function() {
+            const queryText = document.getElementById('searchInput').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (queryText.length < 2) {
+                resultsDiv.innerHTML = '';
+                resultsDiv.classList.add('hidden');
+                return;
+            }
+
+            // 1. Filtrar inventario general según reglas
+            const validItems = inventoryItems.filter(item => {
+                const name = (item.name || '').trim();
+                const part = (item.numParte || '').trim();
+                const status = item.status || '';
+                const location = String(item.ubicacion || '').toUpperCase();
+                
+                // Reglas de exclusión:
+                if (status === 'EN_SALIDA' || location.startsWith('CLIENTE') || location.startsWith('DESPACHO')) return false;
+                if (!name.startsWith('4000') && !part.startsWith('4000')) return false;
+
+                return true;
+            });
+
+            // 2. Agrupar por catálogo
+            const grouped = {};
+            validItems.forEach(item => {
+                const name = (item.name || '').trim();
+                const part = (item.numParte || '').trim();
+
+                if (!grouped[name]) {
+                    const maestroMatch = maestroData.find(m => m.catalogo === name || m.codigo_parte === part);
+                    grouped[name] = {
+                        catalogo: name,
+                        numParte: part,
+                        descripcion: maestroMatch ? maestroMatch.descripcion : 'Sin descripción',
+                        total: 0,
+                        desglose: { 'Venta': 0, 'Reuso': 0, 'Scrap': 0, 'Otro': 0 },
+                        ids: [] // Almacenamos todos los IDs consolidados
+                    };
+                }
+                
+                const qty = parseInt(item.cantidad) || 1;
+                grouped[name].total += qty;
+                grouped[name].ids.push(item.id);
+                
+                let est = item.estado || 'Reuso';
+                if (!['Venta', 'Reuso', 'Scrap'].includes(est)) est = 'Otro';
+                grouped[name].desglose[est] += qty;
+            });
+
+            // 3. Filtrar por texto de búsqueda y excluir los que ya están en la lista
+            const results = Object.values(grouped).filter(group => {
+                // Si el catálogo ya fue agregado a la lista, lo ocultamos del buscador
+                const alreadyAdded = group.ids.some(id => selectedIds.includes(id));
+                if (alreadyAdded) return false;
+
+                const searchStr = `${group.catalogo} ${group.numParte} ${group.descripcion}`.toLowerCase();
+                return searchStr.includes(queryText);
+            }).slice(0, 15); // Límite para evitar lag
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-4 text-slate-400 text-sm text-center italic">No hay resultados disponibles en inventario.</div>';
+                resultsDiv.classList.remove('hidden');
+                return;
+            }
+
+            // 4. Renderizar resultados consolidados con etiquetas de desglose
+            resultsDiv.innerHTML = results.map(group => {
+                let badgesHtml = '';
+                if (group.desglose['Venta'] > 0) badgesHtml += `<span class="bg-emerald-900/60 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-700/50">Venta: ${group.desglose['Venta']}</span>`;
+                if (group.desglose['Reuso'] > 0) badgesHtml += `<span class="bg-amber-900/60 text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-700/50">Reúso: ${group.desglose['Reuso']}</span>`;
+                if (group.desglose['Scrap'] > 0) badgesHtml += `<span class="bg-rose-900/60 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-700/50">Scrap: ${group.desglose['Scrap']}</span>`;
+
+                // Convertimos el array de IDs a string de manera segura para inyectarlo en el onClick
+                const safeIds = JSON.stringify(group.ids).replace(/"/g, '&quot;');
+
+                return `
+                    <div class="p-4 hover:bg-slate-700/60 flex justify-between items-center transition-colors">
+                        <div>
+                            <p class="font-bold text-white text-sm">${group.catalogo} <span class="text-xs text-slate-400 font-normal ml-2">${group.numParte}</span></p>
+                            <p class="text-xs text-slate-400 truncate w-56 md:w-96 mb-1.5">${group.descripcion}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-black tracking-widest border border-indigo-700/50">TOTAL: ${group.total}</span>
+                                ${badgesHtml}
+                            </div>
+                        </div>
+                        <button onclick="addCatalogGroupToList(${safeIds})" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2 text-sm shrink-0">
+                            <span>➕</span> Agregar
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            resultsDiv.classList.remove('hidden');
+        }
+
+        window.addCatalogGroupToList = async function(idsArray) {
+            const newUniqueIds = idsArray.filter(id => !selectedIds.includes(id));
+            if (newUniqueIds.length > 0) {
+                const pubRef = doc(db, 'artifacts', appId, 'public', 'data', 'publicaciones_armadas', 'actual');
+                const newIds = [...selectedIds, ...newUniqueIds];
+                try {
+                    // merge: true previene pisar todo el documento si alguien guardó metadatos allí
+                    await setDoc(pubRef, { itemIds: newIds }, { merge: true });
+                    
+                    // Limpiar barra para seguir armando fluido
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('searchResults').classList.add('hidden');
+                } catch(e) { console.error("Error agregando a la lista", e); }
+            }
+        };
+
+        window.removeItemByCatalog = async function(catalogo) {
+            // Quita TODOS los IDs que corresponden a ese catálogo agrupado
+            const idsToRemove = inventoryItems.filter(i => i.name === catalogo).map(i => i.id);
+            const newIds = selectedIds.filter(id => !idsToRemove.includes(id));
+            try {
+                const pubRef = doc(db, 'artifacts', appId, 'public', 'data', 'publicaciones_armadas', 'actual');
+                await setDoc(pubRef, { itemIds: newIds }, { merge: true });
+            } catch(e) { console.error("Error eliminando ítem", e); }
+        };
+
+        // --- RENDERIZADO DE LA LISTA INFERIOR CONSOLIDADA ---
+        window.renderBottomTable = function() {
+            const tbody = document.getElementById('publicacion-table-body');
+            
+            // 1. Filtrar solo los ítems que hayamos agregado
+            const addedItems = inventoryItems.filter(i => selectedIds.includes(i.id));
+            
+            if (addedItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-16 text-slate-500"><span class="block text-4xl mb-3">📄</span>La lista está vacía. Usá el buscador superior para agregar equipos.</td></tr>`;
+                document.getElementById('totalModelsCount').textContent = '0';
+                return;
+            }
+
+            // 2. Agrupar por Catálogo para generar la consola final
+            const grouped = {};
+            addedItems.forEach(item => {
+                const name = (item.name || '').trim();
+                const part = (item.numParte || '').trim();
+                
+                if (!grouped[name]) {
+                    const matchedMaestro = maestroData.find(m => m.catalogo === name || (m.codigo_parte && m.codigo_parte === part));
+                    grouped[name] = {
+                        catalogo: name,
+                        descripcion: matchedMaestro ? matchedMaestro.descripcion : 'Sin descripción oficial catalogada',
+                        total: 0,
+                        desglose: { 'Venta': 0, 'Reuso': 0, 'Scrap': 0, 'Otro': 0 }
+                    };
+                }
+                
+                const qty = parseInt(item.cantidad) || 1;
+                grouped[name].total += qty;
+                
+                let est = item.estado || 'Reuso';
+                if (!['Venta', 'Reuso', 'Scrap'].includes(est)) est = 'Otro';
+                grouped[name].desglose[est] += qty;
+            });
+
+            const processedStock = Object.values(grouped).sort((a, b) => a.catalogo.localeCompare(b.catalogo));
+            document.getElementById('totalModelsCount').textContent = processedStock.length;
+
+            // 3. Render HTML
+            tbody.innerHTML = processedStock.map(item => {
+                // Buscar Foto en Galería RTDB
+                const sanitizedCat = sanitizeFilename(item.catalogo);
+                const galleryEntry = galleryMap[sanitizedCat];
+                const photoHtml = galleryEntry 
+                    ? `<img src="${galleryEntry.url}" onclick="openImageModal('${galleryEntry.url}')" class="w-12 h-12 object-cover rounded-lg border border-slate-600 shadow-sm mx-auto hover:scale-150 transition-transform bg-white cursor-pointer" title="Foto en Galería (Clic para ampliar)">`
+                    : `<div class="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 mx-auto">S/F</div>`;
+
+                // Crear Badges de Estados
+                let badgesHtml = '';
+                if (item.desglose['Venta'] > 0) badgesHtml += `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-400 border border-emerald-800 mr-2 mb-1">Venta: ${item.desglose['Venta']}</span>`;
+                if (item.desglose['Reuso'] > 0) badgesHtml += `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-800 mr-2 mb-1">Reúso: ${item.desglose['Reuso']}</span>`;
+                if (item.desglose['Scrap'] > 0) badgesHtml += `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-900/40 text-rose-400 border border-rose-800 mr-2 mb-1">Scrap: ${item.desglose['Scrap']}</span>`;
+                if (item.desglose['Otro'] > 0)  badgesHtml += `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-300 border border-slate-600 mr-2 mb-1">Otro: ${item.desglose['Otro']}</span>`;
+
+                return `<tr class="hover:bg-slate-800/80 transition-colors group">
+                                <td class="px-6 py-3">${photoHtml}</td>
+                                <td class="px-6 py-3 font-bold text-white text-base tracking-wide">${item.catalogo}</td>
+                                <td class="px-6 py-3 text-slate-400">${item.descripcion}</td>
+                                <td class="px-6 py-3 text-center font-black text-lg text-indigo-400">${item.total}</td>
+                                <td class="px-6 py-3">${badgesHtml}</td>
+                                <td class="px-6 py-3 text-right">
+                                    <button onclick="removeItemByCatalog('${item.catalogo}')" class="bg-slate-900/50 hover:bg-red-900/40 text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-800/50 p-2 rounded-lg transition" title="Quitar este catálogo de la lista">
+                                        🗑️
+                                    </button>
+                                </td>
+                             </tr>`;
+            }).join('');
+        }
+
+        // Listeners Frontend
+        document.getElementById('searchInput').addEventListener('keyup', searchItems);
+
+        // --- EXPORTACIÓN A EXCEL Y MODAL ---
+        window.openImageModal = function(url) {
+            document.getElementById('modalImg').src = url;
+            document.getElementById('imageModal').classList.remove('hidden');
+        };
+
+        window.closeImageModal = function() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('modalImg').src = '';
+        };
+
+        window.showStatus = function(msg) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: msg,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            } else {
+                alert(msg);
+            }
+        };
+
+        window.clearList = async function() {
+            if (confirm("¿Estás seguro de que querés borrar toda la lista armada? Esta acción no se puede deshacer.")) {
+                try {
+                    const pubRef = doc(db, 'artifacts', appId, 'public', 'data', 'publicaciones_armadas', 'actual');
+                    await setDoc(pubRef, { itemIds: [] }, { merge: true });
+                    showStatus("Lista vaciada correctamente");
+                } catch(e) {
+                    console.error("Error limpiando lista", e);
+                    alert("Hubo un error al limpiar la lista.");
+                }
+            }
+        };
+
+        async function getBase64ImageFromUrl(imageUrl) {
+            try {
+                const res = await fetch(imageUrl);
+                const blob = await res.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                console.error("Error descargando imagen para Excel", e);
+                return null;
+            }
+        }
+
+        window.exportToExcel = async function() {
+            const btn = document.getElementById('btnExportExcel');
+            const originalHTML = btn.innerHTML;
+            
+            const addedItems = inventoryItems.filter(i => selectedIds.includes(i.id));
+            if (addedItems.length === 0) {
+                alert("La lista está vacía. Agregá al menos un catálogo para exportar.");
+                return;
+            }
+
+            btn.innerHTML = '<span>⏳</span> Preparando Excel y fotos...';
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Publicación GRAM');
+
+                worksheet.columns = [
+                    { header: 'Foto', key: 'foto', width: 14 },
+                    { header: 'Catálogo', key: 'catalogo', width: 18 },
+                    { header: 'Modelo / Descripción Oficial', key: 'descripcion', width: 50 },
+                    { header: 'Total', key: 'total', width: 10 },
+                    { header: 'Para Venta', key: 'venta', width: 12 },
+                    { header: 'Para Reúso', key: 'reuso', width: 12 },
+                    { header: 'Para Scrap', key: 'scrap', width: 12 }
+                ];
+
+                worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+                worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+                // Agrupar los ítems seleccionados para Excel
+                const grouped = {};
+                addedItems.forEach(item => {
+                    const name = (item.name || '').trim();
+                    const part = (item.numParte || '').trim();
+                    if (!grouped[name]) {
+                        const matchedMaestro = maestroData.find(m => m.catalogo === name || (m.codigo_parte && m.codigo_parte === part));
+                        grouped[name] = {
+                            catalogo: name,
+                            descripcion: matchedMaestro ? matchedMaestro.descripcion : 'Sin descripción',
+                            total: 0, desglose: { 'Venta': 0, 'Reuso': 0, 'Scrap': 0 }
+                        };
+                    }
+                    const qty = parseInt(item.cantidad) || 1;
+                    grouped[name].total += qty;
+                    let est = item.estado || 'Reuso';
+                    if (!['Venta', 'Reuso', 'Scrap'].includes(est)) est = 'Reuso'; // Fallback visual a reuso si es "otro" en este reporte
+                    grouped[name].desglose[est] += qty;
+                });
+
+                const processedStock = Object.values(grouped).sort((a, b) => a.catalogo.localeCompare(b.catalogo));
+
+                for (let i = 0; i < processedStock.length; i++) {
+                    const item = processedStock[i];
+                    const rowIndex = i + 2; // +1 porque el row 1 es el header, el array en ExcelJS empieza en 1.
+
+                    const row = worksheet.addRow({
+                        catalogo: item.catalogo,
+                        descripcion: item.descripcion,
+                        total: item.total,
+                        venta: item.desglose['Venta'],
+                        reuso: item.desglose['Reuso'],
+                        scrap: item.desglose['Scrap']
+                    });
+
+                    row.height = 75; // Altura para ajustar la miniatura
+                    row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                    row.getCell('descripcion').alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+
+                    // Procesar la foto y adaptarla a la celda
+                    const sanitizedCat = sanitizeFilename(item.catalogo);
+                    const galleryEntry = galleryMap[sanitizedCat];
+                    
+                    if (galleryEntry && galleryEntry.url) {
+                        const base64 = await getBase64ImageFromUrl(galleryEntry.url);
+                        if (base64) {
+                            const imageId = workbook.addImage({
+                                base64: base64,
+                                extension: base64.includes('png') ? 'png' : 'jpeg',
+                            });
+                            
+                            // Se le da un pequeño margen (0.1 y 0.9) para que no choque con los bordes de la celda
+                            worksheet.addImage(imageId, {
+                                tl: { col: 0.1, row: rowIndex - 0.9 },
+                                ext: { width: 85, height: 85 } 
+                            });
+                        }
+                    }
+                }
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                saveAs(blob, 'Lista_Publicacion_GRAM.xlsx');
+
+            } catch (err) {
+                console.error("Fallo al exportar el documento: ", err);
+                alert("Hubo un problema al exportar el Excel. Revisá la consola de tu navegador.");
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+
+        // Boot
+        initApp();
+    </script>
+</body>
+</html>

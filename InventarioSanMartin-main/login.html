@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventario San Martín — Ingreso</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+    padding: 34px 30px; width: 100%; max-width: 360px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+  label { display: block; font-size: 12px; color: #cbd5e1; margin: 14px 0 5px; font-weight: 600; }
+  input {
+    width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid #475569;
+    background: #0f172a; color: #e2e8f0; font-size: 15px;
+  }
+  input:focus { outline: none; border-color: #22c55e; }
+  button {
+    width: 100%; margin-top: 22px; padding: 12px; border: none; border-radius: 8px;
+    background: #22c55e; color: #052e16; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  .error {
+    display: none; margin-top: 16px; padding: 10px 12px; border-radius: 8px;
+    background: rgba(239,68,68,.12); border: 1px solid #ef4444; color: #fca5a5; font-size: 13px;
+  }
+  .error.show { display: block; }
+</style>
+</head>
+<body>
+  <form class="card" id="form" autocomplete="off">
+    <h1>Inventario San Martín</h1>
+    <div class="sub">Ingresá con tu email y contraseña.</div>
+
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocapitalize="none" autocorrect="off" autocomplete="username" required>
+
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" required>
+
+    <button id="btn" type="submit">Ingresar</button>
+    <div class="error" id="error"></div>
+    <div class="msg" id="okmsg"></div>
+    <a href="#" id="forgot" style="display:block;margin-top:14px;font-size:12px;color:#94a3b8;text-align:center">¿Olvidaste tu contraseña?</a>
+  </form>
+
+  <script type="module">
+    import { login, observarSesion, resetPassword } from './src/auth.js';
+
+    const form = document.getElementById('form');
+    const btn = document.getElementById('btn');
+    const errorBox = document.getElementById('error');
+    const okBox = document.getElementById('okmsg');
+
+    // Si ya hay sesión, no mostrar login.
+    observarSesion((user) => { if (user && !user.isAnonymous) location.replace('index.html'); });
+
+    // ¿Olvidaste tu contraseña? Envía el email de restablecimiento nativo de Firebase.
+    document.getElementById('forgot').addEventListener('click', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('show');
+      okBox.style.display = 'none';
+      const email = form.email.value.trim();
+      if (!email) { mostrarError('Escribí tu email arriba y volvé a tocar el enlace.'); return; }
+      try {
+        await resetPassword(email);
+        okBox.textContent = 'Te enviamos un email para restablecer la contraseña. Revisá tu casilla (y el spam).';
+        okBox.style.cssText = 'display:block;margin-top:14px;padding:10px 12px;border-radius:8px;background:rgba(34,197,94,.12);border:1px solid #22c55e;color:#86efac;font-size:13px';
+      } catch (err) {
+        mostrarError('No pudimos enviar el email. Verificá que esté bien escrito.');
+      }
+    });
+
+    function mostrarError(msg) { errorBox.textContent = msg; errorBox.classList.add('show'); }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('show');
+      btn.disabled = true; btn.textContent = 'Ingresando…';
+      try {
+        await login(form.email.value, form.password.value);
+        location.replace('index.html');
+      } catch (err) {
+        const code = err?.code || '';
+        if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
+          mostrarError('Email o contraseña incorrectos.');
+        } else if (code.includes('user-disabled')) {
+          mostrarError('Tu usuario está deshabilitado. Contactá a un administrador.');
+        } else if (code.includes('invalid-email')) {
+          mostrarError('El email no es válido.');
+        } else if (code.includes('too-many-requests')) {
+          mostrarError('Demasiados intentos. Esperá unos minutos.');
+        } else {
+          mostrarError('No se pudo iniciar sesión. Intentá de nuevo.');
+        }
+        btn.disabled = false; btn.textContent = 'Ingresar';
+      }
+    });
+  </script>
+</body>
+</html>

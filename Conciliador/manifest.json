@@ -1,0 +1,22 @@
+{
+  "name": "Conciliador de Materiales",
+  "short_name": "Conciliador",
+  "description": "Herramienta PWA para conciliar materiales devueltos vs. controlados",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

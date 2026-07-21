@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de usuarios — Inventario San Martín</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+         background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #94a3b8; font-size: 13px; margin-bottom: 22px; }
+  a.volver { color: #22c55e; font-size: 13px; text-decoration: none; }
+  .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+  .panel h2 { font-size: 15px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 5px; font-weight: 600; }
+  input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 14px; }
+  input:focus { outline: none; border-color: #22c55e; }
+  .chk { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #cbd5e1; }
+  .chk input { width: auto; }
+  button { padding: 9px 14px; border: none; border-radius: 8px; background: #22c55e; color: #052e16; font-weight: 700; cursor: pointer; font-size: 13px; }
+  button.sec { background: #334155; color: #e2e8f0; }
+  button.danger { background: #7f1d1d; color: #fecaca; }
+  button:disabled { opacity: .55; cursor: default; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  th { text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px; border-bottom: 1px solid #334155; }
+  td { padding: 9px 8px; border-bottom: 1px solid #26334a; vertical-align: middle; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+  .pill.admin { background: rgba(34,197,94,.15); color: #4ade80; }
+  .pill.op { background: #334155; color: #cbd5e1; }
+  .pill.off { background: rgba(239,68,68,.15); color: #fca5a5; }
+  .acciones { display: flex; gap: 6px; flex-wrap: wrap; }
+  .msg { margin-top: 12px; font-size: 13px; padding: 9px 12px; border-radius: 8px; display: none; }
+  .msg.ok { display: block; background: rgba(34,197,94,.12); border: 1px solid #22c55e; color: #86efac; }
+  .msg.err { display: block; background: rgba(239,68,68,.12); border: 1px solid #ef4444; color: #fca5a5; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="volver" href="index.html">← Volver al inventario</a>
+    <h1 style="margin-top:10px">Gestión de usuarios</h1>
+    <div class="sub">Restablecer contraseña envía un email de recuperación al usuario. Crear usuarios, cambiar rol y habilitar/deshabilitar quedan pendientes de una configuración de permisos. Solo administradores.</div>
+
+    <div class="panel">
+      <h2>Nuevo usuario</h2>
+      <form id="formNuevo">
+        <div class="grid">
+          <div><label>Email</label><input id="nu" type="email" autocapitalize="none" required></div>
+          <div><label>Nombre</label><input id="nn"></div>
+          <div><label>Contraseña inicial</label><input id="np" type="text" required></div>
+          <div style="display:flex;align-items:flex-end">
+            <label class="chk"><input type="checkbox" id="nadmin"> Es administrador</label>
+          </div>
+        </div>
+        <button type="submit" style="margin-top:14px" id="btnCrear">Crear usuario</button>
+      </form>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Usuarios</h2>
+      <table>
+        <thead><tr><th>Email</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="5" style="color:#94a3b8">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { protegerPagina, resetPassword } from './src/auth.js';
+    import { crearUsuario, deshabilitarUsuario, fijarRol } from './src/usuarios.js';
+    import { db } from './src/firebase-init.js';
+    import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    await protegerPagina({ soloAdmin: true });
+
+    const tbody = document.getElementById('tbody');
+    const msgBox = document.getElementById('msg');
+    const mostrar = (texto, ok = true) => { msgBox.textContent = texto; msgBox.className = 'msg ' + (ok ? 'ok' : 'err'); };
+
+    function esc(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+    async function refrescar() {
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        const usuarios = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+        if (!usuarios.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:#94a3b8">Sin usuarios.</td></tr>'; return; }
+        tbody.innerHTML = usuarios.map((u) => `
+          <tr data-uid="${esc(u.uid)}" data-email="${esc(u.email || '')}">
+            <td>${esc(u.email || '')}</td>
+            <td>${esc(u.nombre || '')}</td>
+            <td><span class="pill ${u.admin ? 'admin' : 'op'}">${u.admin ? 'Admin' : 'Operario'}</span></td>
+            <td><span class="pill ${u.activo === false ? 'off' : 'op'}">${u.activo === false ? 'Deshabilitado' : 'Activo'}</span></td>
+            <td class="acciones">
+              <button class="sec" data-a="pass">Restablecer</button>
+              <button class="sec" data-a="rol">${u.admin ? 'Quitar admin' : 'Hacer admin'}</button>
+              <button class="${u.activo === false ? 'sec' : 'danger'}" data-a="estado">${u.activo === false ? 'Habilitar' : 'Deshabilitar'}</button>
+            </td>
+          </tr>`).join('');
+      } catch (e) { mostrar('No se pudo cargar la lista de usuarios.', false); }
+    }
+
+    document.getElementById('formNuevo').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnCrear'); btn.disabled = true;
+      try {
+        await crearUsuario({
+          email: document.getElementById('nu').value,
+          password: document.getElementById('np').value,
+          nombre: document.getElementById('nn').value,
+          admin: document.getElementById('nadmin').checked,
+        });
+        mostrar('Usuario creado.');
+        e.target.reset();
+        await refrescar();
+      } catch (err) { mostrar(err?.message || 'No se pudo crear el usuario.', false); }
+      btn.disabled = false;
+    });
+
+    tbody.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-a]'); if (!btn) return;
+      const tr = btn.closest('tr'); const uid = tr.dataset.uid; const accion = btn.dataset.a;
+      btn.disabled = true;
+      try {
+        if (accion === 'pass') {
+          const email = tr.dataset.email;
+          if (confirm('¿Enviar email de restablecimiento de contraseña a ' + email + '?')) {
+            await resetPassword(email); mostrar('Email de restablecimiento enviado a ' + email + '.');
+          }
+        } else if (accion === 'rol') {
+          const esAdmin = tr.querySelector('.pill.admin') !== null;
+          await fijarRol({ uid, admin: !esAdmin }); mostrar('Rol actualizado.');
+        } else if (accion === 'estado') {
+          const deshabilitado = tr.querySelector('.pill.off') !== null;
+          await deshabilitarUsuario({ uid, disabled: !deshabilitado }); mostrar('Estado actualizado.');
+        }
+        await refrescar();
+      } catch (err) { mostrar(err?.message || 'No se pudo completar la acción.', false); }
+      btn.disabled = false;
+    });
+
+    await refrescar();
+  </script>
+</body>
+</html>

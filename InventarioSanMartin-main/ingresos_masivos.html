@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargador de Remitos (Excel)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Librería para leer Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#4f46e5' } } } }
+    </script>
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</head>
+
+<body class="p-4 md:p-6 min-h-screen transition-colors duration-300 dark:bg-slate-900">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- HEADER -->
+        <header
+            class="sticky top-0 z-40 bg-[#f8fafc]/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between mb-8 pb-5 border-b border-gray-200 dark:border-slate-700">
+            <div>
+                <div class="inline-flex items-center gap-2 mb-2">
+                    <div class="px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-200">
+                        <p class="text-[10px] font-bold tracking-widest text-emerald-700 uppercase">Herramientas</p>
+                    </div>
+                </div>
+                <h1 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">
+                    Cargador de <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600">Remitos</span>
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">Subí el Excel con los materiales esperados para que luego puedan
+                    ser controlados en la app de ingresos.</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-3 flex-wrap">
+                <button onclick="toggleDarkMode()"
+                    class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-yellow-400 hover:bg-slate-50 transition shadow-sm">
+                    <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+                </button>
+                <a href="ingresos.html"
+                    class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-bold py-2 px-4 rounded-xl transition shadow-sm flex items-center gap-2">
+                    ⬅️ Volver
+                </a>
+            </div>
+        </header>
+
+        <!-- CONTENIDO -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- PANEL DE CARGA -->
+            <div class="lg:col-span-1 space-y-6">
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+                    <h2 class="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                        <span class="text-emerald-500">1.</span> Datos del Remito
+                    </h2>
+                    <div class="mb-4">
+                        <label for="input-referencia" class="block text-xs font-bold text-slate-500 mb-1">Sitio /
+                            Referencia</label>
+                        <input type="text" id="input-referencia" name="input_referencia"
+                            placeholder="Ej: Vaca Muerta, Remito #123"
+                            class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-700 dark:text-white uppercase">
+                    </div>
+                </div>
+
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+                    <h2 class="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                        <span class="text-emerald-500">2.</span> Archivo Excel
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-4">El sistema buscará columnas llamadas:
+                        <strong>Modelo</strong>, <strong>Parte</strong>, <strong>Serie</strong> y
+                        <strong>Cantidad</strong>.
+                    </p>
+
+                    <input type="file" id="input-excel" name="input_excel" aria-label="Seleccionar archivo Excel"
+                        accept=".xlsx, .xls, .csv"
+                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900/30 dark:file:text-emerald-400 cursor-pointer border border-slate-200 dark:border-slate-600 rounded-xl p-2" />
+                </div>
+
+                <button id="btn-upload" onclick="subirAFirebase()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                    <span>☁️</span> SUBIR REMITO ESPERADO
+                </button>
+            </div>
+
+            <!-- PANEL DE VISTA PREVIA -->
+            <div
+                class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col h-[600px] overflow-hidden">
+                <div
+                    class="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
+                    <h2 class="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <span class="text-emerald-500">3.</span> Vista Previa del Remito
+                    </h2>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="text-slate-500 dark:text-slate-400">Unidades: <strong id="lbl-unidades"
+                                class="text-emerald-600 dark:text-emerald-400">0 / 0</strong></span>
+                        <span class="text-slate-500 dark:text-slate-400">Líneas: <strong id="lbl-lineas"
+                                class="text-slate-800 dark:text-white">0</strong></span>
+                    </div>
+                </div>
+
+                <!-- PANEL DE ESCÁNER Y BOTONES -->
+                <div id="panel-escaner"
+                    class="p-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 hidden flex gap-4">
+                    <input type="text" id="input-escaner" name="input_escaner" aria-label="Escanear código"
+                        placeholder="Escanear código, N° Parte o Serie..." onkeyup="manejarEscaneo(event)"
+                        class="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-700 dark:text-white text-sm">
+                    <button id="btn-marcar-todo" onclick="marcarTodoRecibido()"
+                        class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold py-2 px-4 rounded-lg transition text-sm whitespace-nowrap shadow-sm hidden">✔️
+                        Recibir Todo</button>
+                </div>
+
+                <div class="flex-1 overflow-auto bg-white dark:bg-slate-800 p-0">
+                    <table class="w-full text-sm text-left text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        <thead
+                            class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase text-xs z-10 shadow-sm">
+                            <tr>
+                                <th class="px-4 py-3">Modelo / Catálogo</th>
+                                <th class="px-4 py-3">Descripción</th>
+                                <th class="px-4 py-3">N° Parte</th>
+                                <th class="px-4 py-3">N° Serie</th>
+                                <th class="px-4 py-3 text-center">Estado / Destino</th>
+                                <th class="px-4 py-3 text-center">Esperado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-body" class="divide-y divide-slate-100 dark:divide-slate-700">
+                            <tr>
+                                <td colspan="6" class="text-center py-16 text-slate-400 italic">
+                                    <div class="text-4xl mb-3">📄</div>
+                                    Seleccioná un archivo Excel para ver los datos.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, appId } from './src/firebase-init.js';
+        import { protegerPagina, obtenerSesion, logout } from './src/auth.js';
+        import { collection, addDoc, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        setLogLevel('silent');
+
+        let userId = null;
+        let esAdmin = false;
+        let parsedData = [];
+
+        // Diccionario para mapear posibles nombres de columnas en el Excel
+        const keysMap = {
+            name: ['modelo', 'catalogo', 'material', 'codigo', 'item', 'name', 'producto', 'articulo'],
+            descripcion: ['descripcion', 'desc', 'texto', 'detalle', 'description', 'nombre'],
+            numParte: ['parte', 'codigo de parte', 'pn', 'part number', 'n° parte', 'numparte', 'nro parte', 'numero de parte'],
+            numSerie: ['serie', 'sn', 's/n', 'serial', 'n° serie', 'numserie', 'nro serie', 'numero de serie'],
+            cantidad: ['cantidad', 'cant', 'qty', 'unidades', 'esperado'],
+            estado: ['estado', 'destino', 'status']
+        };
+
+        function findValue(row, possibleKeys, defaultVal = '') {
+            for (let k of Object.keys(row)) {
+                // Normalizamos cabeceras: minúsculas, sin tildes, sin saltos de línea
+                let header = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\n/g, ' ').trim();
+                for (let pk of possibleKeys) {
+                    let cleanPk = pk.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (header === cleanPk || header.includes(cleanPk)) {
+                        if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+                            return row[k];
+                        }
+                    }
+                }
+            }
+            return defaultVal;
+        }
+
+        // Mostrar mensajes tipo Toast rápidos
+        const Toast = Swal.mixin({
+            toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+            didOpen: (toast) => { toast.onmouseenter = Swal.stopTimer; toast.onmouseleave = Swal.resumeTimer; }
+        });
+
+        function getEstadoColorClass(estado) {
+            const est = String(estado || '').trim();
+            if (est === 'Venta') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30';
+            if (est === 'Scrap') return 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/30';
+            if (est === 'Reuso') return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/30';
+            return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/30';
+        }
+
+        // Lógica de lectura de Excel
+        document.getElementById('input-excel').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Mostrar estado de carga en la tabla
+            document.getElementById('preview-body').innerHTML = '<tr><td colspan="6" class="text-center py-10">⏳ Procesando archivo...</td></tr>';
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const primeraHoja = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[primeraHoja];
+
+                    // Convertir a JSON
+                    const jsonRaw = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    parsedData = jsonRaw.map((row, index) => {
+                        let nameRaw = String(findValue(row, keysMap.name)).trim();
+                        let descRaw = String(findValue(row, keysMap.descripcion)).trim();
+                        let parteRaw = String(findValue(row, keysMap.numParte)).trim();
+                        let serieRaw = String(findValue(row, keysMap.numSerie, 'S/N')).trim() || 'S/N';
+                        let estadoRaw = String(findValue(row, keysMap.estado, 'Reuso')).trim() || 'Reuso';
+                        let estadoVal = estadoRaw.charAt(0).toUpperCase() + estadoRaw.slice(1).toLowerCase();
+
+                        // Si no encuentra la columna 'modelo', rescata el dato desde la descripción o parte
+                        let finalName = nameRaw || descRaw || parteRaw;
+
+                        return {
+                            indexId: index,
+                            name: finalName,
+                            descripcion: descRaw,
+                            numParte: parteRaw,
+                            numSerie: serieRaw,
+                            estado: estadoVal,
+                            cantidadEsperada: parseInt(findValue(row, keysMap.cantidad, 1)) || 1,
+                            cantidadRecibida: 0 // Inicia en 0 para ser controlado
+                        };
+                    }).filter(item => item.name !== ''); // Filtrar solo si la fila está completamente vacía
+
+                    renderPreview();
+
+                } catch (error) {
+                    console.error(error);
+                    Swal.fire('Error', 'No se pudo leer el archivo Excel. Asegurate de que sea un archivo válido.', 'error');
+                    document.getElementById('preview-body').innerHTML = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function renderPreview() {
+            const tbody = document.getElementById('preview-body');
+            tbody.innerHTML = '';
+
+
+            if (parsedData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-red-500">No se encontraron datos válidos. Revise las columnas del Excel.</td></tr>';
+                document.getElementById('btn-upload').disabled = true;
+                document.getElementById('lbl-lineas').textContent = '0';
+                document.getElementById('lbl-unidades').textContent = '0';
+                return;
+            }
+
+            let totalEsperado = 0;
+
+            for (let i = 0; i < parsedData.length; i++) {
+                const item = parsedData[i];
+
+                totalEsperado += item.cantidadEsperada;
+
+                const tr = document.createElement('tr');
+                tr.className = `transition-colors duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50`;
+                tr.innerHTML = `
+                    <td class="px-4 py-2 font-bold text-slate-800 dark:text-white truncate max-w-[200px]" title="${item.name}">${item.name}</td>
+                    <td class="px-4 py-2 text-slate-500 dark:text-slate-400 truncate max-w-[200px]" title="${item.descripcion}">${item.descripcion || '-'}</td>
+                    <td class="px-4 py-2 text-slate-500 dark:text-slate-400">${item.numParte || '-'}</td>
+                    <td class="px-4 py-2 text-slate-500 dark:text-slate-400 font-mono text-xs">${item.numSerie}</td>
+                    <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${getEstadoColorClass(item.estado)}">${item.estado}</span></td>
+                    <td class="px-4 py-2 text-center font-bold text-slate-500">${item.cantidadEsperada}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('lbl-lineas').textContent = parsedData.length;
+            document.getElementById('lbl-unidades').textContent = totalEsperado;
+            document.getElementById('btn-upload').disabled = false;
+        }
+
+        window.subirAFirebase = async function () {
+            const referencia = document.getElementById('input-referencia').value.trim().toUpperCase();
+
+            if (!referencia) {
+                Swal.fire('Atención', 'Debe ingresar un Sitio o Referencia para el remito.', 'warning');
+                document.getElementById('input-referencia').focus();
+                return;
+            }
+
+            const { isConfirmed } = await Swal.fire({
+                title: 'Subir Remito Esperado',
+                text: `Se creará un remito pendiente con ${parsedData.length} líneas para ser controlado luego en Gestión de Ingresos.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Confirmar y Subir',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!isConfirmed) return;
+
+            Swal.fire({
+                title: 'Procesando...',
+                text: 'Guardando datos en la nube. Por favor no cierre la ventana.',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const remitosRef = collection(db, 'artifacts', appId, 'public', 'data', 'remitos_esperados');
+
+                const remitoData = {
+                    referencia: referencia,
+                    estado: 'PENDIENTE',
+                    fecha: serverTimestamp(),
+                    operarioCarga: localStorage.getItem('operario_gram') || 'SISTEMA',
+                    items: parsedData.map(i => ({
+                        codigo: i.name,
+                        descripcion: i.descripcion,
+                        numParte: i.numParte,
+                        numSerie: i.numSerie,
+                        estado: i.estado,
+                        cantidadEsperada: i.cantidadEsperada,
+                        cantidadRecibida: 0
+                    }))
+                };
+
+                await addDoc(remitosRef, remitoData);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Remito Cargado!',
+                    text: `El remito "${referencia}" ya está disponible para ser controlado en la pantalla de ingresos.`
+                }).then(() => {
+                    window.location.href = 'ingresos.html'; // Volver a ingresos al terminar
+                });
+
+            } catch (error) {
+                console.error("Error en batch upload: ", error);
+                Swal.fire('Error', 'Ocurrió un error al guardar los datos. Verifique su conexión.', 'error');
+            }
+        }
+
+        (async () => {
+            const user = await protegerPagina();
+            const sesion = await obtenerSesion(user);
+            esAdmin = sesion.admin;
+            localStorage.setItem('operario_gram', (sesion.nombre || '').toUpperCase());
+            userId = user.uid;
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preparación de Pedido — GRAM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: {} } }
+        if (localStorage.getItem('theme') === 'dark' ||
+            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; }
+
+        .res-item { padding: 0.6rem 1rem; cursor: pointer; border-bottom: 1px solid #e2e8f0; transition: background .12s; font-size: .84rem; }
+        .dark .res-item { border-color: #334155; color: #cbd5e1; }
+        .res-item:last-child { border-bottom: none; }
+        .res-item:hover { background: #f1f5f9; }
+        .dark .res-item:hover { background: #1e293b; }
+        .res-cat { font-weight: 700; color: #4f46e5; }
+        .dark .res-cat { color: #818cf8; }
+
+        .loc-card { transition: all .15s; }
+
+        @media print {
+            .no-print { display: none !important; }
+            header, #search-panel { display: none !important; }
+            #print-header { display: block !important; }
+            body { background: white !important; color: black !important; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #bbb; padding: 6px 10px; font-size: 10pt; }
+            thead { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
+            tr:nth-child(even) { background: #f9fafb; -webkit-print-color-adjust: exact; }
+        }
+        #print-header { display: none; }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 p-4 md:p-6">
+
+    <!-- CABECERA IMPRESIÓN -->
+    <div id="print-header" class="mb-4">
+        <h1 style="font-size:16pt;font-weight:bold;margin-bottom:2px;">📋 Lista de Preparación de Pedido</h1>
+        <p id="print-meta" style="font-size:9pt;color:#555;"></p>
+        <hr style="margin:6px 0;">
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+
+        <!-- HEADER -->
+        <header class="no-print sticky top-0 z-40 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between mb-6 pb-5 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 flex items-center justify-center text-xl">📋</div>
+                <div>
+                    <div class="flex items-center gap-3">
+                        <div class="relative no-print">
+                            <select id="order-selector" onchange="cambiarOrden(this.value)"
+                                class="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-xl font-extrabold py-1 pl-3 pr-8 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm">
+                            </select>
+                            <span class="absolute right-3 top-2.5 text-slate-400 pointer-events-none text-sm">▼</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1.5 no-print">
+                        <button onclick="crearNuevaOrden()" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-1 rounded transition border border-indigo-100 dark:border-indigo-800 shadow-sm">➕ Nueva</button>
+                        <button onclick="renombrarOrden()" class="text-[11px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition border border-slate-200 dark:border-slate-600 shadow-sm">✏️ Renombrar</button>
+                        <button onclick="eliminarOrden()" class="text-[11px] bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-2 py-1 rounded transition border border-red-100 dark:border-red-900 shadow-sm">🗑️ Borrar Lista</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 md:mt-0 flex items-center gap-2">
+                <div id="firebase-status" class="flex items-center gap-1.5 text-xs text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Conectando...
+                </div>
+                <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-yellow-400 hover:bg-slate-50 transition shadow-sm">
+                    <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+                </button>
+                <a href="index.html" class="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold py-2 px-4 rounded-xl transition shadow-sm text-sm">
+                    ⬅️ Volver
+                </a>
+            </div>
+        </header>
+
+        <!-- BUSCADOR -->
+        <div id="search-panel" class="no-print bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 mb-6">
+            <h2 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">🔍 Buscar Material en Maestro</h2>
+            <div class="relative">
+                <input type="text" id="prep-search-input" autocomplete="off"
+                    placeholder="Catálogo, N° de parte o descripción..."
+                    class="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white text-sm transition shadow-inner"
+                    onkeyup="buscarEnMaestro()" onfocus="buscarEnMaestro()">
+                <span class="absolute left-3 top-3.5 text-slate-400 pointer-events-none">🔍</span>
+                <div id="search-results-prep"
+                    class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl max-h-64 overflow-y-auto shadow-2xl hidden">
+                </div>
+            </div>
+            <p id="maestro-status" class="text-xs text-slate-400 mt-2">⏳ Cargando maestro de ítems...</p>
+        </div>
+
+        <!-- LISTA DE PREPARACIÓN -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    📦 Lista de Picking
+                    <span id="item-count-badge" class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-2 py-0.5 rounded-full">0 ítems</span>
+                </h2>
+                <div class="no-print flex items-center gap-2 flex-wrap">
+                    <button type="button" id="btn-toggle-view" onclick="toggleViewMode()"
+                        class="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold py-2 px-3 rounded-xl transition text-sm border border-indigo-200 dark:border-indigo-800 shadow-sm"
+                        title="Cambia la vista entre agrupar por producto o por estantería">
+                        👁️ Ver por Ubicación
+                    </button>
+                    <button type="button" onclick="imprimirLista()"
+                        class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2 px-3 rounded-xl transition text-sm shadow-sm">
+                        🖨️ Imprimir
+                    </button>
+                    <button type="button" onclick="exportarExcel()"
+                        class="flex items-center gap-1.5 bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-bold py-2 px-3 rounded-xl transition text-sm border border-teal-200 dark:border-teal-800">
+                        📥 Excel
+                    </button>
+                    <button type="button" onclick="limpiarLista()"
+                        class="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold py-2 px-3 rounded-xl transition text-sm border border-red-200 dark:border-red-800">
+                        🗑️ Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                        <tr>
+                            <th class="px-4 py-3">#</th>
+                            <th class="px-4 py-3">Catálogo</th>
+                            <th class="px-4 py-3">Descripción</th>
+                            <th class="px-4 py-3">N° Parte</th>
+                            <th class="px-4 py-3">📍 Ubicaciones</th>
+                            <th class="px-4 py-3 text-center">Cant.</th>
+                            <th class="px-4 py-3 text-center no-print">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prep-list-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                        <tr>
+                            <td colspan="7" class="text-center py-14 text-slate-400 italic">
+                                <div class="flex flex-col items-center gap-2">
+                                    <span class="text-4xl">🔍</span>
+                                    <span class="text-sm">Buscá un material arriba para comenzar</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-5 py-3 text-right">
+                    <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider">Total unidades</p>
+                    <p id="total-qty" class="text-3xl font-black text-indigo-700 dark:text-indigo-300">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL: SELECCIONAR UBICACIÓN ════════════════════════════════════ -->
+    <div id="ubicacion-modal" class="no-print fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center hidden z-[80]">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh] overflow-hidden">
+
+            <!-- Header modal -->
+            <div class="bg-indigo-600 px-5 py-4 flex justify-between items-center shrink-0">
+                <div>
+                    <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider">Asignar Cantidad</p>
+                    <h3 id="modal-catalogo" class="text-lg font-black text-white"></h3>
+                </div>
+                <button type="button" onclick="cerrarModal()" class="text-indigo-200 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <!-- Info del ítem -->
+            <div class="px-5 py-3 bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800 shrink-0">
+                <p id="modal-desc" class="text-sm text-indigo-800 dark:text-indigo-200"></p>
+                <p id="modal-parte" class="text-xs font-mono text-indigo-500 mt-0.5"></p>
+            </div>
+
+            <!-- Ubicaciones desde Firebase -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-3">
+
+                <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">📍 Stock en inventario</p>
+
+                <div id="ubicaciones-loading" class="flex items-center gap-2 text-sm text-slate-400 py-4">
+                    <svg class="animate-spin w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                    Buscando en inventario...
+                </div>
+
+                <div id="ubicaciones-list" class="space-y-2 hidden"></div>
+
+                <div id="ubicaciones-empty" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-200">
+                    ⚠️ No se encontró stock de este material en el inventario.
+                    <p class="text-xs mt-1 text-amber-600 dark:text-amber-400">Podés igual agregarlo manualmente con ubicación libre.</p>
+                </div>
+
+                <!-- Separador: manual -->
+                <div class="pt-3 border-t border-slate-200 dark:border-slate-700 mt-2">
+                    <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">✏️ O ingresá la ubicación manualmente</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="modal-ubicacion-manual" placeholder="Ej: E3N2P5, TALLER..."
+                            maxlength="30"
+                            class="flex-1 p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white font-mono uppercase text-sm">
+                        <input type="number" id="modal-cantidad-manual" min="1" value="1" placeholder="Cant"
+                            class="w-20 p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white font-bold text-center text-sm">
+                        <button type="button" onclick="agregarManual()"
+                            class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-white font-bold px-4 rounded-xl transition text-sm shadow-sm">
+                            ➕
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 shrink-0">
+                <button type="button" onclick="cerrarModal()"
+                    class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl transition text-sm">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL EDITAR ════════════════════════════════════════════════════ -->
+    <div id="edit-modal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-[80]">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="bg-amber-500 px-5 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">✏️ Editar Ítem</h3>
+                <button type="button" onclick="cerrarEditModal()" class="text-amber-100 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+            <div class="p-5 space-y-4 bg-slate-50 dark:bg-slate-900">
+                <p id="edit-label" class="font-bold text-slate-800 dark:text-white text-sm"></p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ubicaciones (Formato: UBIC: CANT, ...)</label>
+                    <input type="text" id="edit-ubicacion"
+                        class="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 dark:bg-slate-700 dark:text-white font-mono uppercase text-sm"
+                        placeholder="Ej: E2N2P5: 2, TALLER: 1">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cantidad Total</label>
+                    <input type="number" id="edit-cantidad" min="1"
+                        class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 dark:bg-slate-700 dark:text-white font-bold text-center text-xl">
+                </div>
+            </div>
+            <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex gap-3 justify-end">
+                <button type="button" onclick="cerrarEditModal()" class="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 px-4 py-2 rounded-xl font-bold transition text-sm">Cancelar</button>
+                <button type="button" onclick="guardarEdicion()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-2 rounded-xl transition shadow-md text-sm">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ FIREBASE + LÓGICA ═══════════════════════════════════════════════ -->
+    <script src="maestro-cache.js"></script>
+    <script type="module">
+        import { db, rtdb, appId } from './src/firebase-init.js';
+        import { protegerPagina, obtenerSesion, logout } from './src/auth.js';
+        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        let esAdmin = false;
+
+        window.rtdb = rtdb;
+        window.ref = ref;
+        window.onValue = onValue;
+        window.set = set;
+
+        // Verificar sesión y conectar
+        try {
+            const user = await protegerPagina();
+            const sesion = await obtenerSesion(user);
+            esAdmin = sesion.admin;
+            localStorage.setItem('operario_gram', (sesion.nombre || '').toUpperCase());
+            document.getElementById('firebase-status').innerHTML =
+                '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Conectado</span>';
+        } catch (e) {
+            document.getElementById('firebase-status').innerHTML =
+                '<span class="w-2 h-2 rounded-full bg-red-400"></span> <span class="text-red-500 font-semibold">Sin conexión</span>';
+        }
+        
+        // Inicializar estado una vez conectado
+        if (typeof window.initEstado === 'function') {
+            window.initEstado();
+        } else {
+            // Fallback por si initEstado todavía no cargó (aunque el módulo se ejecuta diferido)
+            setTimeout(() => window.initEstado && window.initEstado(), 50);
+        }
+
+        // Función global para buscar ubicaciones en Firebase por catálogo
+        window._buscarUbicacionesFirebase = async function(catalogo) {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+
+            const q = query(colRef, where('name', '==', catalogo));
+            const snap = await getDocs(q);
+            const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // Agrupar por ubicación
+            const grouped = {};
+            items.forEach(item => {
+                const ub = item.ubicacion || 'RECEPCION';
+                if (!grouped[ub]) grouped[ub] = { ubicacion: ub, cantidad: 0, items: [] };
+                grouped[ub].cantidad += parseInt(item.cantidad) || 1;
+                grouped[ub].items.push(item);
+            });
+
+            return Object.values(grouped).sort((a, b) => b.cantidad - a.cantidad);
+        };
+    </script>
+
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        // ─── ESTADO ──────────────────────────────────────────────────────────
+        let viewMode = localStorage.getItem('gram_prep_view_mode') || 'PRODUCTO';
+        let maestroData = [];
+        
+        let gramState = {
+            orders: [{ id: Date.now().toString(), name: 'Preparación de Pedido', items: [] }],
+            currentOrderId: localStorage.getItem('gram_prep_current') || null
+        };
+        let prepList = []; 
+        let currentOrderObj = null;
+        let isStateLoaded = false;
+        
+        function initEstado() {
+            onValue(ref(rtdb, 'temp_preparaciones/STATE'), snap => {
+                const val = snap.val();
+                if (val && val.orders) {
+                    gramState.orders = val.orders;
+                    if (!gramState.currentOrderId || !gramState.orders.find(o => o.id === gramState.currentOrderId)) {
+                        gramState.currentOrderId = gramState.orders[0].id;
+                        localStorage.setItem('gram_prep_current', gramState.currentOrderId);
+                    }
+                } else {
+                    let localState = JSON.parse(localStorage.getItem('gram_prep_state'));
+                    if (localState && localState.orders) {
+                        gramState.orders = localState.orders;
+                    } else {
+                        let oldList = JSON.parse(localStorage.getItem('gram_prep_list') || '[]');
+                        if (oldList.length > 0) {
+                            let unifiedList = {};
+                            oldList.forEach(item => {
+                                let cat = item.catalogo;
+                                if (!unifiedList[cat]) {
+                                    unifiedList[cat] = {
+                                        catalogo: cat, descripcion: item.descripcion, parte: item.parte,
+                                        cantidadTotal: item.cantidadTotal !== undefined ? item.cantidadTotal : (item.cantidad || 1),
+                                        ubicaciones: item.ubicaciones ? [...item.ubicaciones] : [{ loc: item.ubicacion || '—', qty: item.cantidad || 1 }]
+                                    };
+                                } else {
+                                    let qty = item.cantidadTotal !== undefined ? item.cantidadTotal : (item.cantidad || 1);
+                                    unifiedList[cat].cantidadTotal += qty;
+                                    if (item.ubicaciones) unifiedList[cat].ubicaciones.push(...item.ubicaciones);
+                                    else unifiedList[cat].ubicaciones.push({ loc: item.ubicacion || '—', qty });
+                                }
+                            });
+                            gramState.orders[0].items = Object.values(unifiedList);
+                        }
+                    }
+                    if (!gramState.currentOrderId) gramState.currentOrderId = gramState.orders[0].id;
+                    set(ref(rtdb, 'temp_preparaciones/STATE'), { orders: gramState.orders });
+                }
+                
+                loadCurrentOrder();
+                actualizarSelectorOrdenes();
+                if (!isStateLoaded) {
+                    isStateLoaded = true;
+                } else {
+                    renderList();
+                }
+            });
+        }
+
+        function loadCurrentOrder() {
+            currentOrderObj = gramState.orders.find(o => o.id === gramState.currentOrderId);
+            if (!currentOrderObj && gramState.orders.length > 0) {
+                currentOrderObj = gramState.orders[0];
+                gramState.currentOrderId = currentOrderObj.id;
+            } else if (!currentOrderObj) {
+                crearNuevaOrden();
+                return;
+            }
+            prepList = currentOrderObj.items || [];
+        }
+
+        function saveGramState() {
+            set(ref(rtdb, 'temp_preparaciones/STATE'), { orders: gramState.orders });
+            localStorage.setItem('gram_prep_current', gramState.currentOrderId);
+        }
+
+        window.cambiarOrden = function(id) {
+            gramState.currentOrderId = id;
+            saveGramState();
+            loadCurrentOrder();
+            actualizarSelectorOrdenes();
+            renderList();
+        }
+
+        window.crearNuevaOrden = function() {
+            let newId = Date.now().toString();
+            gramState.orders.unshift({ id: newId, name: 'Nueva Preparación', items: [] });
+            gramState.currentOrderId = newId;
+            saveGramState();
+            loadCurrentOrder();
+            actualizarSelectorOrdenes();
+            renderList();
+        }
+
+        window.renombrarOrden = function() {
+            let order = gramState.orders.find(o => o.id === gramState.currentOrderId);
+            Swal.fire({
+                title: 'Renombrar Lista',
+                input: 'text',
+                inputValue: order.name,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar'
+            }).then(r => {
+                if (r.isConfirmed && r.value.trim()) {
+                    order.name = r.value.trim();
+                    saveGramState();
+                    actualizarSelectorOrdenes();
+                }
+            });
+        }
+
+        window.eliminarOrden = function() {
+            Swal.fire({
+                title: '¿Borrar esta lista?', text: 'Se perderán todos los ítems de esta preparación.',
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Borrar'
+            }).then(r => {
+                if (r.isConfirmed) {
+                    gramState.orders = gramState.orders.filter(o => o.id !== gramState.currentOrderId);
+                    saveGramState();
+                    loadCurrentOrder();
+                    actualizarSelectorOrdenes();
+                    renderList();
+                    Toast.fire({ icon: 'info', title: 'Lista borrada' });
+                }
+            });
+        }
+
+        function actualizarSelectorOrdenes() {
+            const sel = document.getElementById('order-selector');
+            if (!sel) return;
+            sel.innerHTML = gramState.orders.map(o => 
+                `<option value="${o.id}" ${o.id === gramState.currentOrderId ? 'selected' : ''}>${o.name} (${(o.items || []).length} ítems)</option>`
+            ).join('');
+        }
+
+        let pendingItem = null;
+        let editingIndex = null;
+        let _searchResults = [];
+        window.ubicacionesDisponibles = [];
+
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2800, timerProgressBar: true });
+
+        // ─── CARGAR MAESTRO ──────────────────────────────────────────────────
+        async function loadMaestro() {
+            const st = document.getElementById('maestro-status');
+            try {
+                const url = window.resolveMaestroUrl('maestro.json');
+                const raw = await window.fetchWithCache(url, 'maestro_data');
+                maestroData = raw.map(item => ({
+                    catalogo: String(item['MATERIAL'] || item['Material'] || item.catalogo || ''),
+                    descripcion: String(item['TEXTO'] || item['Texto_breve_de_material'] || item.descripcion || ''),
+                    parte: String(item['CÓDIGO DE PARTE'] || item['Part_Number'] || item.codigo_parte || ''),
+                })).filter(x => x.catalogo);
+                st.textContent = `✅ ${maestroData.length.toLocaleString()} ítems en maestro`;
+            } catch {
+                st.textContent = '⚠️ No se pudo cargar el maestro. Verificá tu conexión.';
+            }
+        }
+
+        // ─── BUSCADOR ────────────────────────────────────────────────────────
+        window.buscarEnMaestro = function() {
+            const q = document.getElementById('prep-search-input').value.toLowerCase().trim();
+            const container = document.getElementById('search-results-prep');
+            if (q.length < 2) { container.classList.add('hidden'); return; }
+
+            _searchResults = maestroData.filter(x =>
+                (x.catalogo + ' ' + x.descripcion + ' ' + x.parte).toLowerCase().includes(q)
+            ).slice(0, 15);
+
+            if (_searchResults.length === 0) {
+                container.innerHTML = '<div class="res-item text-slate-400 italic">Sin resultados para "' + q + '"</div>';
+            } else {
+                container.innerHTML = _searchResults.map((item, i) => `
+                    <div class="res-item" onclick="seleccionarItem(${i})">
+                        <span class="res-cat">${item.catalogo}</span>
+                        <span style="color:#64748b"> — ${item.descripcion || 'Sin descripción'}</span>
+                        ${item.parte ? `<span style="font-size:0.75rem;color:#94a3b8"> (${item.parte})</span>` : ''}
+                    </div>`).join('');
+            }
+            container.classList.remove('hidden');
+        }
+
+        window.seleccionarItem = async function(idx) {
+            const item = _searchResults[idx];
+            if (!item) return;
+            pendingItem = item;
+
+            document.getElementById('search-results-prep').classList.add('hidden');
+            document.getElementById('prep-search-input').value = '';
+
+            // Rellenar modal
+            document.getElementById('modal-catalogo').textContent = item.catalogo;
+            document.getElementById('modal-desc').textContent = item.descripcion || '—';
+            document.getElementById('modal-parte').textContent = item.parte ? `N° Parte: ${item.parte}` : '';
+            document.getElementById('modal-ubicacion-manual').value = '';
+            document.getElementById('modal-cantidad-manual').value = 1;
+
+            // Mostrar modal
+            document.getElementById('ubicacion-modal').classList.remove('hidden');
+
+            // Cargar ubicaciones
+            const loadingEl = document.getElementById('ubicaciones-loading');
+            const listEl = document.getElementById('ubicaciones-list');
+            const emptyEl = document.getElementById('ubicaciones-empty');
+            loadingEl.classList.remove('hidden');
+            listEl.classList.add('hidden');
+            emptyEl.classList.add('hidden');
+            listEl.innerHTML = '';
+            window.ubicacionesDisponibles = [];
+
+            try {
+                const ubicaciones = await window._buscarUbicacionesFirebase(item.catalogo);
+                loadingEl.classList.add('hidden');
+
+                if (ubicaciones.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                } else {
+                    listEl.classList.remove('hidden');
+                    window.ubicacionesDisponibles = ubicaciones;
+
+                    let html = ubicaciones.map((ub, i) => {
+                        const isRecepcion = ub.ubicacion === 'RECEPCION';
+                        const badgeColor = isRecepcion
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700';
+                        const icon = isRecepcion ? '📦' : '📍';
+                        return `
+                        <div class="loc-card bg-slate-50 dark:bg-slate-900 rounded-xl p-3 flex items-center justify-between gap-3 border border-slate-100 dark:border-slate-700 cursor-default">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg ${badgeColor} border flex items-center justify-center text-sm font-bold shrink-0">${icon}</div>
+                                <p class="font-bold text-slate-800 dark:text-white text-sm">${ub.ubicacion}</p>
+                            </div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">Stock: <span class="font-black text-indigo-600 dark:text-indigo-400 text-sm">${ub.cantidad}</span></div>
+                        </div>`;
+                    }).join('');
+
+                    let totalStock = ubicaciones.reduce((s, u) => s + u.cantidad, 0);
+
+                    html += `
+                    <div class="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase">Cantidad a preparar</p>
+                            <p class="text-xs text-indigo-600 dark:text-indigo-400">Stock total disponible: <strong>${totalStock}</strong></p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="modal-cantidad-total" min="1" max="${totalStock}" value="1"
+                                class="w-20 p-2 border border-indigo-300 dark:border-indigo-600 rounded-lg text-center font-black text-lg dark:bg-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" onclick="agregarCantidadTotal()"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg transition shadow-md">
+                                ➕ Agregar
+                            </button>
+                        </div>
+                    </div>`;
+
+                    listEl.innerHTML = html;
+
+                    // Auto-focus al input principal
+                    setTimeout(() => {
+                        let inpt = document.getElementById('modal-cantidad-total');
+                        if (inpt) { inpt.focus(); inpt.select(); }
+                    }, 100);
+                }
+            } catch (e) {
+                loadingEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                console.error(e);
+            }
+        }
+
+        // Agregar auto-asignando según ubicaciones disponibles
+        window.agregarCantidadTotal = function() {
+            let required = parseInt(document.getElementById('modal-cantidad-total').value) || 1;
+            let allocated = [];
+            let remaining = required;
+
+            for (let u of window.ubicacionesDisponibles) {
+                if (remaining <= 0) break;
+                let take = Math.min(u.cantidad, remaining);
+                allocated.push({ loc: u.ubicacion, qty: take });
+                remaining -= take;
+            }
+
+            if (remaining > 0) {
+                Swal.fire('Stock Insuficiente', 'Solo hay stock conocido para cubrir ' + (required - remaining) + ' unidades. Se agregará lo que haya disponible.', 'warning');
+            }
+
+            if (allocated.length > 0) {
+                agregarALista(allocated, required - remaining); // Solo agregamos lo que encontramos
+            }
+        }
+
+        // Agregar manual (para cuando no hay stock o lo saltamos)
+        window.agregarManual = function() {
+            const ub = document.getElementById('modal-ubicacion-manual').value.trim().toUpperCase() || '—';
+            const qty = parseInt(document.getElementById('modal-cantidad-manual').value) || 1;
+            agregarALista([{ loc: ub, qty: qty }], qty);
+        }
+
+        function agregarALista(ubicacionesArr, totalQty) {
+            if (!pendingItem) return;
+            
+            const existing = prepList.find(x => x.catalogo === pendingItem.catalogo);
+            
+            if (existing) {
+                existing.cantidadTotal += totalQty;
+                // Mezclar o sumar ubicaciones
+                for (let u of ubicacionesArr) {
+                    let exUb = existing.ubicaciones.find(x => x.loc === u.loc);
+                    if (exUb) exUb.qty += u.qty;
+                    else existing.ubicaciones.push(u);
+                }
+                Toast.fire({ icon: 'info', title: `Cantidad unificada a ${existing.cantidadTotal}` });
+            } else {
+                prepList.push({
+                    catalogo: pendingItem.catalogo,
+                    descripcion: pendingItem.descripcion,
+                    parte: pendingItem.parte,
+                    cantidadTotal: totalQty,
+                    ubicaciones: [...ubicacionesArr]
+                });
+                Toast.fire({ icon: 'success', title: `"${pendingItem.catalogo}" agregado ✅` });
+            }
+            savePrepList();
+            renderList();
+            cerrarModal();
+        }
+
+        window.cerrarModal = function() {
+            document.getElementById('ubicacion-modal').classList.add('hidden');
+            pendingItem = null;
+        }
+
+        // ─── EDITAR ──────────────────────────────────────────────────────────
+        window.abrirEdicion = function(i) {
+            editingIndex = i;
+            const item = prepList[i];
+            document.getElementById('edit-label').textContent = `${item.catalogo} — ${item.descripcion}`;
+            document.getElementById('edit-ubicacion').value = item.ubicaciones.map(u => `${u.loc}: ${u.qty}`).join(', ');
+            document.getElementById('edit-cantidad').value = item.cantidadTotal;
+            document.getElementById('edit-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('edit-cantidad').focus(), 100);
+        }
+
+        window.cerrarEditModal = function() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingIndex = null;
+        }
+
+        window.guardarEdicion = function() {
+            if (editingIndex === null) return;
+            const qty = parseInt(document.getElementById('edit-cantidad').value) || 1;
+            const ubString = document.getElementById('edit-ubicacion').value.trim();
+
+            let newUbs = [];
+            if (ubString) {
+                let parts = ubString.split(',');
+                for (let p of parts) {
+                    let splitIdx = p.lastIndexOf(':');
+                    if (splitIdx !== -1) {
+                        let loc = p.substring(0, splitIdx).trim().toUpperCase();
+                        let q = parseInt(p.substring(splitIdx + 1).trim());
+                        newUbs.push({ loc: loc || '—', qty: isNaN(q) ? qty : q });
+                    } else {
+                        newUbs.push({ loc: p.trim().toUpperCase() || '—', qty: qty });
+                    }
+                }
+            } else {
+                newUbs.push({ loc: '—', qty: qty });
+            }
+
+            prepList[editingIndex].cantidadTotal = qty;
+            prepList[editingIndex].ubicaciones = newUbs;
+            
+            savePrepList();
+            renderList();
+            cerrarEditModal();
+            Toast.fire({ icon: 'success', title: 'Ítem actualizado ✅' });
+        }
+
+        // ─── ELIMINAR ────────────────────────────────────────────────────────
+        window.eliminarItem = function(i) {
+            Swal.fire({
+                title: '¿Eliminar?',
+                text: `"${prepList[i].catalogo}" será removido de la lista.`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#ef4444', cancelButtonText: 'Cancelar', confirmButtonText: 'Eliminar',
+            }).then(r => {
+                if (r.isConfirmed) {
+                    prepList.splice(i, 1);
+                    savePrepList();
+                    renderList();
+                    Toast.fire({ icon: 'success', title: 'Ítem eliminado' });
+                }
+            });
+        }
+
+        // ─── LIMPIAR ─────────────────────────────────────────────────────────
+        window.limpiarLista = function() {
+            if (!prepList.length) return;
+            Swal.fire({
+                title: '¿Limpiar toda la lista?', text: 'Esta acción no se puede deshacer.',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#ef4444', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, limpiar',
+            }).then(r => {
+                if (r.isConfirmed) { prepList.length = 0; savePrepList(); renderList(); Toast.fire({ icon: 'success', title: 'Lista limpiada' }); }
+            });
+        }
+
+        // ─── VISTA ───────────────────────────────────────────────────────────
+        window.toggleViewMode = function() {
+            viewMode = viewMode === 'PRODUCTO' ? 'UBICACION' : 'PRODUCTO';
+            localStorage.setItem('gram_prep_view_mode', viewMode);
+            renderList();
+        }
+
+        // ─── RENDER ──────────────────────────────────────────────────────────
+        function renderList() {
+            const tbody = document.getElementById('prep-list-body');
+            const thead = document.querySelector('thead tr');
+            
+            const toggleBtn = document.getElementById('btn-toggle-view');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = viewMode === 'PRODUCTO' ? '👁️ Ver por Ubicación' : '👁️ Ver por Producto';
+            }
+
+            document.getElementById('item-count-badge').textContent = `${prepList.length} ítem${prepList.length !== 1 ? 's' : ''}`;
+
+            if (!prepList.length) {
+                thead.innerHTML = `
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-4 py-3">Catálogo</th>
+                    <th class="px-4 py-3">Descripción</th>
+                    <th class="px-4 py-3">N° Parte</th>
+                    <th class="px-4 py-3">📍 Ubicaciones</th>
+                    <th class="px-4 py-3 text-center">Cant.</th>
+                    <th class="px-4 py-3 text-center no-print">Acción</th>
+                `;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-14 text-slate-400 italic">
+                    <div class="flex flex-col items-center gap-2"><span class="text-4xl">🔍</span><span class="text-sm">Buscá un material arriba para comenzar</span></div></td></tr>`;
+                document.getElementById('total-qty').textContent = '0';
+                return;
+            }
+
+            let total = 0;
+
+            if (viewMode === 'PRODUCTO') {
+                thead.innerHTML = `
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-4 py-3">Catálogo</th>
+                    <th class="px-4 py-3">Descripción</th>
+                    <th class="px-4 py-3">N° Parte</th>
+                    <th class="px-4 py-3">📍 Ubicaciones</th>
+                    <th class="px-4 py-3 text-center">Cant.</th>
+                    <th class="px-4 py-3 text-center no-print">Acción</th>
+                `;
+
+                tbody.innerHTML = prepList.map((item, i) => {
+                    total += item.cantidadTotal;
+                    
+                    const ubicBadge = item.ubicaciones.map(u => {
+                        const isRecepcion = u.loc === 'RECEPCION';
+                        const badgeColor = isRecepcion ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
+                        return `<div class="${badgeColor} font-mono text-[11px] font-bold px-1.5 py-0.5 rounded mb-1 inline-block mr-1 whitespace-nowrap">${u.loc}: ${u.qty}</div>`;
+                    }).join('') || `<span class="text-slate-400 italic text-xs">Sin ubicación</span>`;
+                    
+                    return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+                        <td class="px-4 py-3 text-slate-400 text-xs font-bold">${i + 1}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm">${item.catalogo}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-[180px] truncate" title="${item.descripcion}">${item.descripcion || '—'}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500">${item.parte || '—'}</td>
+                        <td class="px-4 py-3 min-w-[160px]">${ubicBadge}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white font-black text-base px-3 py-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-600">${item.cantidadTotal}</span>
+                        </td>
+                        <td class="px-4 py-3 text-center no-print">
+                            <div class="flex items-center justify-center gap-1">
+                                <button type="button" onclick="abrirEdicion(${i})"
+                                    class="bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold px-2 py-1.5 rounded-lg text-xs border border-amber-200 dark:border-amber-800 transition">✏️</button>
+                                <button type="button" onclick="eliminarItem(${i})"
+                                    class="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 font-bold px-2 py-1.5 rounded-lg text-xs border border-red-200 dark:border-red-800 transition">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } else {
+                thead.innerHTML = `
+                    <th class="px-4 py-3" colspan="6">📍 Agrupado por Ubicación Física</th>
+                `;
+
+                let locGroups = {};
+                prepList.forEach((item, itemIdx) => {
+                    total += item.cantidadTotal;
+                    if (!item.ubicaciones || item.ubicaciones.length === 0) {
+                        if (!locGroups['—']) locGroups['—'] = [];
+                        locGroups['—'].push({ ...item, qtyToPick: item.cantidadTotal, originalIdx: itemIdx });
+                        return;
+                    }
+                    item.ubicaciones.forEach(u => {
+                        if (!locGroups[u.loc]) locGroups[u.loc] = [];
+                        locGroups[u.loc].push({ ...item, qtyToPick: u.qty, originalIdx: itemIdx });
+                    });
+                });
+
+                let sortedLocs = Object.keys(locGroups).sort((a,b) => a.localeCompare(b));
+                
+                let html = '';
+                sortedLocs.forEach(loc => {
+                    const isRecepcion = loc === 'RECEPCION';
+                    const bgLoc = isRecepcion ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white';
+                    
+                    html += `
+                        <tr class="bg-slate-100 dark:bg-slate-800/80 border-y border-slate-200 dark:border-slate-600">
+                            <td colspan="6" class="px-4 py-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xl">${isRecepcion ? '📦' : '📍'}</span>
+                                    <span class="font-black text-sm tracking-wider uppercase ${bgLoc} px-3 py-1 rounded-lg">${loc}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+
+                    locGroups[loc].forEach(row => {
+                        html += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition border-b border-slate-100 dark:border-slate-700 last:border-b-0">
+                            <td class="px-4 py-3 text-slate-400 text-xs font-bold pl-8 w-12">↳</td>
+                            <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm">${row.catalogo}</td>
+                            <td class="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-[200px] truncate" title="${row.descripcion}">${row.descripcion || '—'}</td>
+                            <td class="px-4 py-3 font-mono text-xs text-slate-500">${row.parte || '—'}</td>
+                            <td class="px-4 py-3 text-center w-24">
+                                <span class="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 font-black text-base px-3 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800">${row.qtyToPick}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center no-print w-24">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button type="button" onclick="abrirEdicion(${row.originalIdx})" class="text-slate-400 hover:text-amber-500 transition text-xs border border-transparent hover:border-amber-200 dark:hover:border-amber-800 px-2 py-1 rounded" title="Editar producto entero">✏️ Editar</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                });
+
+                tbody.innerHTML = html;
+            }
+
+            document.getElementById('total-qty').textContent = total;
+        }
+
+        function savePrepList() { 
+            saveGramState(); 
+            actualizarSelectorOrdenes(); 
+        }
+
+        // ─── IMPRIMIR ────────────────────────────────────────────────────────
+        window.imprimirLista = function() {
+            if (!prepList.length) { Toast.fire({ icon: 'warning', title: 'La lista está vacía' }); return; }
+            document.getElementById('print-meta').textContent =
+                `Fecha: ${new Date().toLocaleString('es-AR')} | ${prepList.length} ítems unificados | ${prepList.reduce((s,x) => s + x.cantidadTotal, 0)} unidades`;
+            window.print();
+        }
+
+        // ─── EXCEL ───────────────────────────────────────────────────────────
+        window.exportarExcel = function() {
+            if (!prepList.length) { Toast.fire({ icon: 'warning', title: 'La lista está vacía' }); return; }
+            const rows = prepList.map((x, i) => ({
+                '#': i+1, 
+                'Catálogo': x.catalogo, 
+                'Descripción': x.descripcion, 
+                'N° Parte': x.parte, 
+                'Ubicaciones': x.ubicaciones.map(u => `${u.loc}: ${u.qty}`).join(' | '), 
+                'Cantidad Total': x.cantidadTotal
+            }));
+            const _escFormula = (v) => (typeof v === 'string' && /^[=+\-@\t\r]/.test(v)) ? "'" + v : v;
+            const rowsSafe = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, _escFormula(v)])));
+            const ws = XLSX.utils.json_to_sheet(rowsSafe);
+            ws['!cols'] = [{wch:4},{wch:18},{wch:35},{wch:18},{wch:25},{wch:12}];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Preparación');
+            XLSX.writeFile(wb, `Preparacion_${new Date().toISOString().slice(0,10)}.xlsx`);
+            Toast.fire({ icon: 'success', title: 'Excel descargado ✅' });
+        }
+
+        // ─── INIT ─────────────────────────────────────────────────────────────
+        loadMaestro();
+        renderList();
+
+        // Cerrar dropdown al clickear fuera
+        document.addEventListener('click', e => {
+            if (!document.getElementById('prep-search-input').contains(e.target) &&
+                !document.getElementById('search-results-prep').contains(e.target))
+                document.getElementById('search-results-prep').classList.add('hidden');
+        });
+
+        // Enter/Escape en modales
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { cerrarModal(); cerrarEditModal(); }
+            if (e.key === 'Enter') {
+                if (!document.getElementById('edit-modal').classList.contains('hidden')) {
+                    guardarEdicion();
+                } else if (!document.getElementById('ubicacion-modal').classList.contains('hidden')) {
+                    let inpt = document.getElementById('modal-cantidad-total');
+                    if (inpt && document.activeElement === inpt) agregarCantidadTotal();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

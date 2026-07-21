@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Conversor Excel a JSON</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-10 flex flex-col items-center justify-center min-h-screen">
+
+    <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md text-center">
+        <h1 class="text-2xl font-bold mb-2 text-gray-800">Conversor Excel ➡️ JSON</h1>
+        <p class="text-sm text-gray-500 mb-6">Genera el archivo para tu GitHub en un clic.</p>
+        
+        <div class="mb-6 text-left">
+            <label for="select-tipo" class="block text-xs font-bold text-gray-500 uppercase mb-2">Tipo de Archivo a Generar</label>
+            <select id="select-tipo" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-bold text-gray-700">
+                <option value="maestro">Maestro de Materiales (maestro.json)</option>
+                <option value="estados">Estados Predeterminados (estados.json)</option>
+            </select>
+        </div>
+
+        <div id="instrucciones" class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-left text-xs text-blue-800">
+            <p id="instrucciones-texto" class="font-medium"></p>
+        </div>
+
+        <input type="file" id="input-excel" accept=".xlsx, .xls" class="mb-6 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border rounded p-2"/>
+
+        <div id="status" class="hidden p-4 mb-4 text-sm rounded bg-gray-50 text-left font-mono h-32 overflow-y-auto"></div>
+
+        <button id="btn-descargar" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow transition">
+            ⬇️ DESCARGAR MAESTRO.JSON
+        </button>
+    </div>
+
+    <script type="module">
+        import { protegerPagina } from './src/auth.js';
+        await protegerPagina({ soloAdmin: true });
+
+        const selectTipo = document.getElementById('select-tipo');
+        const instruccionesTexto = document.getElementById('instrucciones-texto');
+        
+        function actualizarInstrucciones() {
+            if (selectTipo.value === 'maestro') {
+                instruccionesTexto.innerHTML = "<strong>Columnas esperadas en el Excel (maestro.json):</strong><br>• Fila 1: Títulos/Encabezados (se omiten)<br>• <strong>Columna A</strong>: Material / Catálogo<br>• <strong>Columna B</strong>: Código de Parte<br>• <strong>Columna C</strong>: Descripción";
+            } else {
+                instruccionesTexto.innerHTML = "<strong>Columnas esperadas en el Excel (estados.json):</strong><br>• Fila 1: Títulos/Encabezados (se omiten)<br>• <strong>Columna A</strong>: Catálogo o N° Parte<br>• <strong>Columna B</strong>: N° Parte (opcional, si hay 3 columnas)<br>• <strong>Columna C</strong> (o B si tiene 2 col): Estado (Venta, Reuso o Scrap)";
+            }
+            // Limpiar estado y ocultar botón de descarga al cambiar tipo
+            document.getElementById('input-excel').value = '';
+            document.getElementById('status').classList.add('hidden');
+            document.getElementById('btn-descargar').classList.add('hidden');
+        }
+        
+        selectTipo.addEventListener('change', actualizarInstrucciones);
+        actualizarInstrucciones();
+
+        document.getElementById('input-excel').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const tipo = selectTipo.value;
+            const status = document.getElementById('status');
+            const btn = document.getElementById('btn-descargar');
+            
+            btn.classList.add('hidden');
+            status.classList.remove('hidden');
+            status.innerHTML = "⏳ Leyendo Excel...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    let sheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("maestro")) || workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+
+                    status.innerHTML += `<br>✅ Hoja encontrada: ${sheetName}`;
+                    status.innerHTML += `<br>📊 Filas totales: ${rows.length}`;
+                    status.innerHTML += `<br>⚙️ Convirtiendo...`;
+
+                    let jsonSalida;
+                    let filename = "";
+
+                    if (tipo === 'maestro') {
+                        jsonSalida = [];
+                        filename = "maestro.json";
+                        for (let i = 1; i < rows.length; i++) {
+                            const row = rows[i];
+                            if (!row || row.length === 0) continue;
+                            if (row[0] || row[2]) {
+                                jsonSalida.push({
+                                    "catalogo": String(row[0] || "").trim(),
+                                    "codigo_parte": String(row[1] || "").trim(),
+                                    "descripcion": String(row[2] || "").trim()
+                                });
+                            }
+                        }
+                    } else {
+                        // Procesar Estados
+                        jsonSalida = {};
+                        filename = "estados.json";
+                        for (let i = 1; i < rows.length; i++) {
+                            const row = rows[i];
+                            if (!row || row.length === 0) continue;
+                            
+                            const colA = String(row[0] || "").trim();
+                            if (!colA) continue;
+
+                            let rawEstado = "";
+                            let colB = String(row[1] || "").trim();
+                            let colC = String(row[2] || "").trim();
+
+                            if (row.length === 2) {
+                                rawEstado = colB;
+                            } else if (row.length >= 3) {
+                                rawEstado = colC || colB;
+                            }
+
+                            // Normalizar estado a los valores de la app
+                            let estadoNormalizado = "Reuso";
+                            const cleanEstado = rawEstado.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            if (cleanEstado.includes("venta")) {
+                                estadoNormalizado = "Venta";
+                            } else if (cleanEstado.includes("scrap")) {
+                                estadoNormalizado = "Scrap";
+                            } else if (cleanEstado.includes("reuso") || cleanEstado.includes("reúso")) {
+                                estadoNormalizado = "Reuso";
+                            }
+
+                            jsonSalida[colA.toUpperCase()] = estadoNormalizado;
+                            if (colB && row.length >= 3) {
+                                jsonSalida[colB.toUpperCase()] = estadoNormalizado;
+                            }
+                        }
+                    }
+
+                    const numItems = tipo === 'maestro' ? jsonSalida.length : Object.keys(jsonSalida).length;
+                    status.innerHTML += `<br>✨ Elementos procesados: ${numItems}`;
+
+                    // Preparar descarga
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonSalida, null, 2));
+                    btn.classList.remove('hidden');
+                    btn.textContent = `⬇️ DESCARGAR ${filename.toUpperCase()}`;
+                    
+                    btn.onclick = function() {
+                        const downloadAnchorNode = document.createElement('a');
+                        downloadAnchorNode.setAttribute("href", dataStr);
+                        downloadAnchorNode.setAttribute("download", filename);
+                        document.body.appendChild(downloadAnchorNode);
+                        downloadAnchorNode.click();
+                        downloadAnchorNode.remove();
+                    };
+
+                    // Auto-clic
+                    btn.click();
+                } catch (err) {
+                    console.error(err);
+                    status.innerHTML += `<br>❌ Error: ${err.message}`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

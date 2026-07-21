@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero de Ingresos de Sitios | Control por Contrato</title>
+    <meta name="description" content="Sistema de control cuantitativo por contrato (GU, RAN, MOU) y fecha para el ingreso de sitios.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Encabezado Principal / Navbar -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-group">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-tower-cell"></i>
+                </div>
+                <div>
+                    <h1 class="brand-title">Tablero de Ingresos de Sitios</h1>
+                    <p class="brand-subtitle">Control cuantitativo por contrato (GU, RAN, MOU) y fecha</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Indicador de Estado de Conexión Nube -->
+                <div class="cloud-badge" id="cloud-status" title="Sincronizado con Realtime Database">
+                    <i class="fa-solid fa-cloud-check"></i>
+                    <span>Nube Sincronizada</span>
+                </div>
+
+                <!-- Acciones de Usuario / Login Admin -->
+                <div id="user-nav-actions" style="display: flex; align-items: center; gap: 8px;">
+                    <!-- Se genera dinámicamente desde app.js -->
+                </div>
+
+                <button class="btn btn-secondary btn-sm" id="btn-import" onclick="document.getElementById('file-import-json').click()">
+                    <i class="fa-solid fa-file-import"></i> Importar
+                </button>
+                <input type="file" id="file-import-json" accept=".json" style="display: none;" onchange="window.importFromJSON(event)">
+
+                <button class="btn btn-secondary btn-sm" id="btn-export-json" onclick="window.exportToJSON()">
+                    <i class="fa-solid fa-file-export"></i> Respaldar JSON
+                </button>
+
+                <button class="btn btn-secondary btn-sm" id="btn-export" onclick="window.exportToCSV()">
+                    <i class="fa-solid fa-file-csv"></i> Exportar CSV
+                </button>
+
+                <button class="btn btn-primary" id="btn-open-modal" onclick="window.openModal()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Ingreso
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="app-container">
+        
+        <!-- Barra de Filtros -->
+        <section class="section-card filter-card">
+            <div class="filter-grid">
+                <!-- Filtro por Mes -->
+                <div class="field-container">
+                    <label class="field-label" for="filter-month">Período / Mes</label>
+                    <select id="filter-month" class="select-style">
+                        <option value="ALL">Todos los Meses</option>
+                    </select>
+                </div>
+
+                <!-- Filtro por Contrato -->
+                <div class="field-container">
+                    <label class="field-label" for="filter-contract">Contrato</label>
+                    <select id="filter-contract" class="select-style">
+                        <option value="ALL">Todos los Contratos</option>
+                        <option value="GU">Contrato GU</option>
+                        <option value="RAN">Contrato RAN</option>
+                        <option value="MOU">Contrato MOU</option>
+                    </select>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div class="field-container">
+                    <label class="field-label" for="filter-status">Estado</label>
+                    <select id="filter-status" class="select-style">
+                        <option value="ALL">Todos los Estados</option>
+                        <option value="PARCIAL">🟡 Parcial</option>
+                        <option value="FINALIZADO">🟢 Finalizado</option>
+                        <option value="PENDIENTE">⚪ Pendiente</option>
+                    </select>
+                </div>
+
+                <!-- Buscador de Sitio -->
+                <div class="field-container" style="flex: 1; min-width: 200px;">
+                    <label class="field-label" for="filter-search">Buscar Sitio / Contrata</label>
+                    <input type="text" id="filter-search" class="input-style" placeholder="Escribe el nombre o ID del sitio...">
+                </div>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" id="btn-reset-filters" onclick="window.resetFilters()" style="align-self: flex-end;">
+                <i class="fa-solid fa-rotate-left"></i> Limpiar Filtros
+            </button>
+        </section>
+
+        <!-- Tarjetas KPI -->
+        <section class="kpi-grid">
+            <!-- Total -->
+            <div class="kpi-card kpi-total">
+                <div class="kpi-header">
+                    <span class="kpi-title">Total Ingresos</span>
+                    <span class="kpi-badge badge-total">Global</span>
+                </div>
+                <div class="kpi-value" id="kpi-val-total">0</div>
+                <div class="kpi-subtext" id="kpi-sub-total">Sitios registrados</div>
+            </div>
+
+            <!-- GU -->
+            <div class="kpi-card kpi-gu">
+                <div class="kpi-header">
+                    <span class="kpi-title">Contrato GU</span>
+                    <span class="kpi-badge badge-gu">GU</span>
+                </div>
+                <div class="kpi-value" id="kpi-val-gu">0</div>
+                <div class="kpi-subtext" id="kpi-sub-gu">0% del total de ingresos</div>
+            </div>
+
+            <!-- RAN -->
+            <div class="kpi-card kpi-ran">
+                <div class="kpi-header">
+                    <span class="kpi-title">Contrato RAN</span>
+                    <span class="kpi-badge badge-ran">RAN</span>
+                </div>
+                <div class="kpi-value" id="kpi-val-ran">0</div>
+                <div class="kpi-subtext" id="kpi-sub-ran">0% del total de ingresos</div>
+            </div>
+
+            <!-- MOU -->
+            <div class="kpi-card kpi-mou">
+                <div class="kpi-header">
+                    <span class="kpi-title">Contrato MOU</span>
+                    <span class="kpi-badge badge-mou">MOU</span>
+                </div>
+                <div class="kpi-value" id="kpi-val-mou">0</div>
+                <div class="kpi-subtext" id="kpi-sub-mou">0% del total de ingresos</div>
+            </div>
+        </section>
+
+        <!-- Gráficos de Analítica -->
+        <div class="grid-2col">
+            <div class="section-card" style="margin-bottom: 0;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fa-solid fa-chart-column"></i> Evolución de Ingresos Mensuales
+                    </h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-monthly"></canvas>
+                </div>
+            </div>
+
+            <div class="section-card" style="margin-bottom: 0;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fa-solid fa-chart-pie"></i> Distribución por Contrato
+                    </h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-contract"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <br>
+
+        <!-- Resumen Cuantitativo Pivote por Mes -->
+        <section class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-table-cells"></i> Desglose Mensual por Contrato (GU / RAN / MOU)
+                </h2>
+                <span class="field-label" id="lbl-pivot-count">0 Períodos</span>
+            </div>
+            <div class="pivot-table-container">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Mes / Año</th>
+                            <th>Contrato GU</th>
+                            <th>Contrato RAN</th>
+                            <th>Contrato MOU</th>
+                            <th>Total del Mes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pivot-tbody">
+                        <!-- Filas de desglose dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tabla Completa de Registros de Sitios -->
+        <section class="section-card">
+            <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-list-check"></i> Detalle de Sitios Ingresados
+                </h2>
+
+                <!-- Buscador directo en la tabla -->
+                <div style="position: relative; flex: 1; max-width: 380px; min-width: 220px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                    <input type="text" id="table-search" class="input-style" placeholder="Escribe el nombre o ID del sitio..." style="padding-left: 36px; height: 38px; font-size: 0.85rem; width: 100%;">
+                </div>
+
+                <span class="field-label" id="lbl-records-count">Mostrando 0 sitios</span>
+            </div>
+
+            <div class="pivot-table-container">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre / ID del Sitio</th>
+                            <th>Contrato</th>
+                            <th>Empresa Contrata</th>
+                            <th>Fecha de Ingreso</th>
+                            <th>Estado</th>
+                            <th>Observaciones</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sites-tbody">
+                        <!-- Filas de sitios ingresados -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Nuevo / Editar Ingreso de Sitio -->
+    <div class="modal-overlay" id="modal-site">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title-text">Registrar Ingreso de Sitio</h3>
+                <button class="btn btn-secondary btn-icon-only" id="btn-close-modal" onclick="window.closeModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="form-site">
+                <input type="hidden" id="site-id">
+
+                <div class="form-group">
+                    <label class="form-label" for="site-name">Nombre / Identificador del Sitio *</label>
+                    <input type="text" id="site-name" class="input-style form-control" placeholder="Ej: SM-042, SM-043, SM-044 (puedes ingresar varios separados por coma)" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="site-contract">Contrato *</label>
+                    <select id="site-contract" class="select-style form-control" required>
+                        <option value="GU">GU</option>
+                        <option value="RAN">RAN</option>
+                        <option value="MOU">MOU</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="site-contractor">Empresa Contrata (Desmonte)</label>
+                    <input type="text" id="site-contractor" list="contractors-list" class="input-style form-control" placeholder="Escribe o selecciona la contrata (ej: TelcoSur, Servicom...)" autocomplete="off">
+                    <datalist id="contractors-list">
+                        <!-- Opciones de autocompletado generadas dinámicamente -->
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="site-status">Estado del Sitio *</label>
+                    <select id="site-status" class="select-style form-control" required style="font-weight: 600;">
+                        <option value="PARCIAL">🟡 Parcial</option>
+                        <option value="FINALIZADO">🟢 Finalizado</option>
+                        <option value="PENDIENTE">⚪ Pendiente</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Fecha de Ingreso (Día / Mes / Año) *</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="flex: 1;">
+                            <input type="number" id="site-day" class="input-style form-control" min="1" max="31" placeholder="Día" required style="text-align: center; font-weight: 600;">
+                        </div>
+                        <div style="flex: 1.5;">
+                            <select id="site-month" class="select-style form-control" required style="text-align: center; font-weight: 600;">
+                                <option value="01">Enero (01)</option>
+                                <option value="02">Febrero (02)</option>
+                                <option value="03">Marzo (03)</option>
+                                <option value="04">Abril (04)</option>
+                                <option value="05">Mayo (05)</option>
+                                <option value="06">Junio (06)</option>
+                                <option value="07">Julio (07)</option>
+                                <option value="08">Agosto (08)</option>
+                                <option value="09">Septiembre (09)</option>
+                                <option value="10">Octubre (10)</option>
+                                <option value="11">Noviembre (11)</option>
+                                <option value="12">Diciembre (12)</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="number" id="site-year" class="input-style form-control" min="2000" max="2100" placeholder="Año" required style="text-align: center; font-weight: 600;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="site-notes">Observaciones / Detalles</label>
+                    <textarea id="site-notes" class="input-style form-control" rows="3" placeholder="Ingresa cualquier detalle u observación sobre este ingreso..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal" onclick="window.closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Registro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Inicio de Sesión de Administrador -->
+    <div class="modal-overlay" id="modal-login">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Acceso de Administrador</h3>
+                <button class="btn btn-secondary btn-icon-only" onclick="window.closeModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="form-login" onsubmit="window.handleLoginSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="login-username">Usuario de Administrador</label>
+                    <input type="text" id="login-username" class="input-style form-control" placeholder="Ingresa tu usuario (ej: ZILKJL)" required style="font-weight: 600; text-transform: uppercase;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="window.closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase JS SDK v9+ CDN (Compatibilidad modular global) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
