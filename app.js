@@ -1319,7 +1319,7 @@ window.printRotulosFromModal = function() {
                     width: 100mm;
                     height: 80mm;
                     box-sizing: border-box;
-                    padding: 6mm 8mm;
+                    padding: 4mm 6mm;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
@@ -1330,19 +1330,19 @@ window.printRotulosFromModal = function() {
                     page-break-after: avoid;
                 }
                 .label-header {
-                    border-bottom: 3.5px solid #000000;
-                    padding-bottom: 4px;
+                    border-bottom: 4.5px solid #000000;
+                    padding-bottom: 2px;
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-end;
                 }
                 .label-badge-label {
-                    font-size: 11px;
+                    font-size: 14px;
                     font-weight: 800;
-                    color: #333;
+                    color: #000;
                 }
                 .label-badge-value {
-                    font-size: 28px;
+                    font-size: 42px;
                     font-weight: 900;
                     letter-spacing: -0.5px;
                 }
@@ -1351,41 +1351,42 @@ window.printRotulosFromModal = function() {
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                    margin-top: 4px;
-                    margin-bottom: 4px;
+                    margin-top: 2px;
+                    margin-bottom: 2px;
+                    gap: 6px;
                 }
                 .label-field-title {
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #444;
-                    margin-bottom: 2px;
+                    font-size: 14px;
+                    font-weight: 800;
+                    color: #000;
+                    margin-bottom: 1px;
                     text-transform: uppercase;
                 }
                 .label-field-value {
-                    font-size: 24px;
+                    font-size: 38px;
                     font-weight: 900;
-                    line-height: 1.1;
+                    line-height: 1.05;
                 }
                 .label-date-value {
-                    font-size: 18px;
+                    font-size: 26px;
                     font-weight: 900;
                     margin-left: 6px;
                 }
                 .label-footer {
-                    border-top: 2px solid #000000;
-                    padding-top: 4px;
+                    border-top: 3.5px solid #000000;
+                    padding-top: 2px;
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-end;
                 }
                 .label-footer-brand {
-                    font-size: 10px;
-                    font-weight: bold;
-                    color: #555;
+                    font-size: 13px;
+                    font-weight: 800;
+                    color: #000;
                     text-transform: uppercase;
                 }
                 .label-footer-counter {
-                    font-size: 28px;
+                    font-size: 44px;
                     font-weight: 900;
                     color: #000000;
                     line-height: 1;
