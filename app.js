@@ -1235,3 +1235,173 @@ window.printCaratulaFromModal = function() {
     `);
     printWindow.document.close();
 };
+
+window.printRotulosFromModal = function() {
+    const contractor = DOM.siteContractor ? DOM.siteContractor.value.trim() : '';
+    const siteNames = DOM.siteName ? DOM.siteName.value.trim() : '';
+    const day = DOM.siteDay ? DOM.siteDay.value : '';
+    const month = DOM.siteMonth ? DOM.siteMonth.value : '';
+    const year = DOM.siteYear ? DOM.siteYear.value : '';
+
+    if (!siteNames) {
+        showToast("Por favor ingresa al menos un nombre de sitio para generar los rótulos", "danger");
+        return;
+    }
+
+    const countStr = prompt("¿Cuántos palets deseas rotular para este ingreso? (Ej: 3)", "3");
+    if (countStr === null) return; // cancelado
+
+    const count = parseInt(countStr, 10);
+    if (isNaN(count) || count < 1) {
+        showToast("Por favor ingresa un número válido de palets (ej: 1, 2, 3...)", "danger");
+        return;
+    }
+
+    const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
+        return;
+    }
+
+    let labelsHtml = '';
+    for (let i = 1; i <= count; i++) {
+        labelsHtml += `
+            <div class="label-page">
+                <div class="label-header">
+                    <span class="label-badge-label">CONTRATA</span>
+                    <span class="label-badge-value">${contractor || '____________'}</span>
+                </div>
+                
+                <div class="label-content">
+                    <div style="margin-bottom: 8px;">
+                        <div class="label-field-title">SITIOS</div>
+                        <div class="label-field-value">${siteNames}</div>
+                    </div>
+                    <div>
+                        <span class="label-field-title">FECHA INGRESO:</span>
+                        <span class="label-date-value">${formattedDate || '___/___/______'}</span>
+                    </div>
+                </div>
+
+                <div class="label-footer">
+                    <span class="label-footer-brand">Control de Ingresos</span>
+                    <span class="label-footer-counter">PALET ${i}/${count}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Rótulos para Palets - Zebra</title>
+            <style>
+                @page {
+                    size: 100mm 80mm;
+                    margin: 0;
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    width: 100mm;
+                    height: 80mm;
+                    background-color: #ffffff;
+                    color: #000000;
+                    font-family: 'Arial', sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .label-page {
+                    width: 100mm;
+                    height: 80mm;
+                    box-sizing: border-box;
+                    padding: 6mm 8mm;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    page-break-after: always;
+                    overflow: hidden;
+                }
+                .label-page:last-child {
+                    page-break-after: avoid;
+                }
+                .label-header {
+                    border-bottom: 3.5px solid #000000;
+                    padding-bottom: 4px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                }
+                .label-badge-label {
+                    font-size: 11px;
+                    font-weight: 800;
+                    color: #333;
+                }
+                .label-badge-value {
+                    font-size: 28px;
+                    font-weight: 900;
+                    letter-spacing: -0.5px;
+                }
+                .label-content {
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    margin-top: 4px;
+                    margin-bottom: 4px;
+                }
+                .label-field-title {
+                    font-size: 11px;
+                    font-weight: bold;
+                    color: #444;
+                    margin-bottom: 2px;
+                    text-transform: uppercase;
+                }
+                .label-field-value {
+                    font-size: 24px;
+                    font-weight: 900;
+                    line-height: 1.1;
+                }
+                .label-date-value {
+                    font-size: 18px;
+                    font-weight: 900;
+                    margin-left: 6px;
+                }
+                .label-footer {
+                    border-top: 2px solid #000000;
+                    padding-top: 4px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                }
+                .label-footer-brand {
+                    font-size: 10px;
+                    font-weight: bold;
+                    color: #555;
+                    text-transform: uppercase;
+                }
+                .label-footer-counter {
+                    font-size: 28px;
+                    font-weight: 900;
+                    color: #000000;
+                    line-height: 1;
+                }
+            </style>
+        </head>
+        <body>
+            ${labelsHtml}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+};
