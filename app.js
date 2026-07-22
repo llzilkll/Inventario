@@ -1460,13 +1460,13 @@ window.openPrintModal = function() {
     // Poblar autocompletado
     populateContractorsDatalist();
 
-    modal.style.display = 'flex';
+    modal.classList.add('active');
     if (printSiteName) printSiteName.focus();
 };
 
 window.closePrintModal = function() {
     const modal = document.getElementById('modal-print-tools');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('active');
 };
 
 window.printCaratulaFromPrintModal = function() {
