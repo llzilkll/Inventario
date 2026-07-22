@@ -1069,3 +1069,170 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+window.printCaratulaFromModal = function() {
+    const contractor = DOM.siteContractor ? DOM.siteContractor.value.trim() : '';
+    const siteNames = DOM.siteName ? DOM.siteName.value.trim() : '';
+    const day = DOM.siteDay ? DOM.siteDay.value : '';
+    const month = DOM.siteMonth ? DOM.siteMonth.value : '';
+    const year = DOM.siteYear ? DOM.siteYear.value : '';
+    const notes = DOM.siteNotes ? DOM.siteNotes.value.trim() : '';
+
+    if (!siteNames) {
+        showToast("Por favor ingresa al menos un nombre de sitio para generar la carátula", "danger");
+        return;
+    }
+
+    const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
+        return;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Carátula de Planilla de Control</title>
+            <style>
+                @page {
+                    size: A4 portrait;
+                    margin: 15mm;
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                }
+                .header-top {
+                    display: grid;
+                    grid-template-columns: 1fr 1.5fr 1fr;
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 10px;
+                    margin-bottom: 15px;
+                }
+                .header-col {
+                    text-align: center;
+                }
+                .header-col label {
+                    display: block;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    color: #444;
+                    font-weight: bold;
+                    margin-bottom: 4px;
+                }
+                .header-col span {
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                .title-box {
+                    display: grid;
+                    grid-template-columns: 3.5fr 1.5fr;
+                    border: 2px solid #8faadc;
+                    margin-bottom: 25px;
+                }
+                .title-text {
+                    background-color: #d9e1f2;
+                    font-size: 32px;
+                    font-weight: bold;
+                    text-align: center;
+                    padding: 20px;
+                    border-right: 2px solid #8faadc;
+                }
+                .operario-text {
+                    display: flex;
+                    align-items: center;
+                    padding-left: 15px;
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                .grid-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+                .grid-table td {
+                    border: 1px solid #8faadc;
+                    height: 40px;
+                    padding: 8px 12px;
+                    font-size: 15px;
+                    vertical-align: middle;
+                }
+                .label-cell {
+                    font-weight: bold;
+                    width: 160px;
+                }
+                .empty-row td {
+                    height: 40px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header-top">
+                <div class="header-col" style="text-align: left;">
+                    <label>Nombre de Contrata</label>
+                    <span>${contractor || '____________'}</span>
+                </div>
+                <div class="header-col">
+                    <label>Sitios</label>
+                    <span>${siteNames}</span>
+                </div>
+                <div class="header-col" style="text-align: right;">
+                    <label>Fecha</label>
+                    <span>${formattedDate || '___/___/______'}</span>
+                </div>
+            </div>
+
+            <div class="title-box">
+                <div class="title-text">Planilla de control</div>
+                <div class="operario-text">Operario: ______________</div>
+            </div>
+
+            <table class="grid-table">
+                <tr>
+                    <td class="label-cell">Fecha de inicio:</td>
+                    <td>${formattedDate || ''}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Fecha fin:</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                
+                <tr>
+                    <td class="label-cell" colspan="5">Observaciones:</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="height: 150px; vertical-align: top; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${notes || ''}</td>
+                </tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+            </table>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+};
