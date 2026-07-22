@@ -1099,8 +1099,8 @@ window.printCaratulaFromModal = function() {
             <title>Carátula de Planilla de Control</title>
             <style>
                 @page {
-                    size: A4 portrait;
-                    margin: 15mm;
+                    size: A4 landscape;
+                    margin: 8mm;
                 }
                 body {
                     font-family: Arial, sans-serif;
@@ -1110,10 +1110,10 @@ window.printCaratulaFromModal = function() {
                 }
                 .header-top {
                     display: grid;
-                    grid-template-columns: 1fr 1.5fr 1fr;
-                    border-bottom: 2px solid #333;
-                    padding-bottom: 10px;
-                    margin-bottom: 15px;
+                    grid-template-columns: 1.2fr 1.6fr 1.2fr;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 8px;
+                    margin-bottom: 12px;
                 }
                 .header-col {
                     text-align: center;
@@ -1127,48 +1127,47 @@ window.printCaratulaFromModal = function() {
                     margin-bottom: 4px;
                 }
                 .header-col span {
-                    font-size: 18px;
-                    font-weight: bold;
+                    font-size: 28px;
+                    font-weight: 800;
                 }
                 .title-box {
                     display: grid;
-                    grid-template-columns: 3.5fr 1.5fr;
+                    grid-template-columns: 4fr 1.2fr;
                     border: 2px solid #8faadc;
-                    margin-bottom: 25px;
+                    margin-bottom: 15px;
                 }
                 .title-text {
                     background-color: #d9e1f2;
-                    font-size: 32px;
+                    font-size: 34px;
                     font-weight: bold;
                     text-align: center;
-                    padding: 20px;
+                    padding: 15px;
                     border-right: 2px solid #8faadc;
                 }
                 .operario-text {
                     display: flex;
                     align-items: center;
                     padding-left: 15px;
-                    font-size: 16px;
+                    font-size: 18px;
                     font-weight: bold;
                 }
                 .grid-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-bottom: 20px;
                 }
                 .grid-table td {
                     border: 1px solid #8faadc;
-                    height: 40px;
-                    padding: 8px 12px;
+                    height: 35px;
+                    padding: 6px 12px;
                     font-size: 15px;
                     vertical-align: middle;
                 }
                 .label-cell {
                     font-weight: bold;
-                    width: 160px;
+                    width: 180px;
                 }
                 .empty-row td {
-                    height: 40px;
+                    height: 35px;
                 }
             </style>
         </head>
@@ -1176,15 +1175,15 @@ window.printCaratulaFromModal = function() {
             <div class="header-top">
                 <div class="header-col" style="text-align: left;">
                     <label>Nombre de Contrata</label>
-                    <span>${contractor || '____________'}</span>
+                    <span style="font-size: 30px;">${contractor || '____________'}</span>
                 </div>
                 <div class="header-col">
                     <label>Sitios</label>
-                    <span>${siteNames}</span>
+                    <span style="font-size: 30px;">${siteNames}</span>
                 </div>
                 <div class="header-col" style="text-align: right;">
                     <label>Fecha</label>
-                    <span>${formattedDate || '___/___/______'}</span>
+                    <span style="font-size: 24px;">${formattedDate || '___/___/______'}</span>
                 </div>
             </div>
 
@@ -1196,7 +1195,7 @@ window.printCaratulaFromModal = function() {
             <table class="grid-table">
                 <tr>
                     <td class="label-cell">Fecha de inicio:</td>
-                    <td>${formattedDate || ''}</td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -1213,11 +1212,14 @@ window.printCaratulaFromModal = function() {
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 
                 <tr>
-                    <td class="label-cell" colspan="5">Observaciones:</td>
+                    <td class="label-cell" colspan="5" style="background-color: #f2f2f2;">Observaciones:</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="height: 150px; vertical-align: top; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${notes || ''}</td>
+                    <td colspan="5" style="height: 60px; vertical-align: top; font-size: 16px; line-height: 1.4; white-space: pre-wrap; font-weight: bold; border-bottom: none;">${notes || ''}</td>
                 </tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
