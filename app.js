@@ -1337,56 +1337,54 @@ window.printRotulosFromModal = function() {
                     align-items: flex-end;
                 }
                 .label-badge-label {
-                    font-size: 14px;
+                    font-size: 12px;
                     font-weight: 800;
                     color: #000;
                 }
                 .label-badge-value {
-                    font-size: 42px;
+                    font-size: 26px;
                     font-weight: 900;
-                    letter-spacing: -0.5px;
+                    text-align: right;
                 }
                 .label-content {
                     flex-grow: 1;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                    margin-top: 2px;
-                    margin-bottom: 2px;
                     gap: 6px;
+                    margin: 4px 0;
                 }
                 .label-field-title {
-                    font-size: 14px;
+                    font-size: 12px;
                     font-weight: 800;
                     color: #000;
-                    margin-bottom: 1px;
                     text-transform: uppercase;
                 }
                 .label-field-value {
-                    font-size: 38px;
+                    font-size: 28px;
                     font-weight: 900;
-                    line-height: 1.05;
+                    line-height: 1.1;
                 }
                 .label-date-value {
-                    font-size: 26px;
+                    font-size: 20px;
                     font-weight: 900;
                     margin-left: 6px;
                 }
                 .label-footer {
-                    border-top: 3.5px solid #000000;
-                    padding-top: 2px;
+                    border-top: 2px solid #000000;
+                    padding-top: 4px;
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-end;
                 }
                 .label-footer-brand {
-                    font-size: 13px;
+                    font-size: 11px;
                     font-weight: 800;
                     color: #000;
                     text-transform: uppercase;
                 }
                 .label-footer-counter {
-                    font-size: 44px;
+                    font-size: 28px;
                     font-weight: 900;
                     color: #000000;
                     line-height: 1;
