@@ -1072,6 +1072,7 @@ function escapeHtml(str) {
 window.printCaratulaFromModal = function() {
     const contractor = DOM.siteContractor ? DOM.siteContractor.value.trim() : '';
     const siteNames = DOM.siteName ? DOM.siteName.value.trim() : '';
+    const contract = DOM.siteContract ? DOM.siteContract.value : 'GU';
     const day = DOM.siteDay ? DOM.siteDay.value : '';
     const month = DOM.siteMonth ? DOM.siteMonth.value : '';
     const year = DOM.siteYear ? DOM.siteYear.value : '';
@@ -1112,7 +1113,7 @@ window.printCaratulaFromModal = function() {
                 }
                 .header-top {
                     display: grid;
-                    grid-template-columns: 1.2fr 1.6fr 1.2fr;
+                    grid-template-columns: 1.2fr 0.8fr 1.6fr 1fr;
                     border-bottom: 3px solid #000;
                     padding-bottom: 8px;
                     margin-bottom: 12px;
@@ -1178,6 +1179,10 @@ window.printCaratulaFromModal = function() {
                 <div class="header-col" style="text-align: left;">
                     <label>Nombre de Contrata</label>
                     <span style="font-size: ${headerContractorFontSize};">${contractor || '____________'}</span>
+                </div>
+                <div class="header-col">
+                    <label>Contrato</label>
+                    <span style="font-size: 28px; font-weight: 800;">${contract}</span>
                 </div>
                 <div class="header-col">
                     <label>Sitios</label>
