@@ -266,7 +266,7 @@ function initEventListeners() {
 
 // --- POBLAR AUTOCOMPLETADO DE CONTRATAS (DATALIST) ---
 function populateContractorsDatalist() {
-    if (!DOM.contractorsList) return;
+    const listElements = [DOM.contractorsList, document.getElementById('print-contractors-list')];
 
     const set = new Set(['TelcoSur S.A.', 'Servicom', 'Electromontajes', 'Techint Telecom', 'Redes & Fibra']);
 
@@ -282,7 +282,9 @@ function populateContractorsDatalist() {
         html += `<option value="${escapeHtml(contractor)}"></option>`;
     });
 
-    DOM.contractorsList.innerHTML = html;
+    listElements.forEach(el => {
+        if (el) el.innerHTML = html;
+    });
 }
 
 // --- FILTRADO ---
@@ -1429,4 +1431,378 @@ window.handleSearchInput = function(val) {
     searchTimeout = setTimeout(() => {
         renderCharts(filteredSites);
     }, 200);
+};
+
+window.openPrintModal = function() {
+    const modal = document.getElementById('modal-print-tools');
+    if (!modal) return;
+    
+    // Limpiar campos
+    const printSiteName = document.getElementById('print-site-name');
+    const printSiteContract = document.getElementById('print-site-contract');
+    const printSiteContractor = document.getElementById('print-site-contractor');
+    const printSiteDay = document.getElementById('print-site-day');
+    const printSiteMonth = document.getElementById('print-site-month');
+    const printSiteYear = document.getElementById('print-site-year');
+    const printSiteNotes = document.getElementById('print-site-notes');
+
+    if (printSiteName) printSiteName.value = '';
+    if (printSiteContract) printSiteContract.value = 'GU';
+    if (printSiteContractor) printSiteContractor.value = '';
+    if (printSiteNotes) printSiteNotes.value = '';
+
+    // Cargar fecha actual
+    const now = new Date();
+    if (printSiteDay) printSiteDay.value = now.getDate();
+    if (printSiteMonth) printSiteMonth.value = String(now.getMonth() + 1).padStart(2, '0');
+    if (printSiteYear) printSiteYear.value = now.getFullYear();
+
+    // Poblar autocompletado
+    populateContractorsDatalist();
+
+    modal.style.display = 'flex';
+    if (printSiteName) printSiteName.focus();
+};
+
+window.closePrintModal = function() {
+    const modal = document.getElementById('modal-print-tools');
+    if (modal) modal.style.display = 'none';
+};
+
+window.printCaratulaFromPrintModal = function() {
+    const contractor = document.getElementById('print-site-contractor') ? document.getElementById('print-site-contractor').value.trim() : '';
+    const siteNames = document.getElementById('print-site-name') ? document.getElementById('print-site-name').value.trim() : '';
+    const day = document.getElementById('print-site-day') ? document.getElementById('print-site-day').value : '';
+    const month = document.getElementById('print-site-month') ? document.getElementById('print-site-month').value : '';
+    const year = document.getElementById('print-site-year') ? document.getElementById('print-site-year').value : '';
+    const notes = document.getElementById('print-site-notes') ? document.getElementById('print-site-notes').value.trim() : '';
+
+    if (!siteNames) {
+        showToast("Por favor ingresa al menos un nombre de sitio para generar la carátula", "danger");
+        return;
+    }
+
+    const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
+        return;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Carátula de Planilla de Control</title>
+            <style>
+                @page {
+                    size: A4 landscape;
+                    margin: 8mm;
+                }
+                body {
+                    font-family: Arial, sans-serif;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                }
+                .header-top {
+                    display: grid;
+                    grid-template-columns: 1.2fr 1.6fr 1.2fr;
+                    border-bottom: 3px solid #000;
+                    padding-bottom: 8px;
+                    margin-bottom: 12px;
+                }
+                .header-col {
+                    text-align: center;
+                }
+                .header-col label {
+                    display: block;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    color: #444;
+                    font-weight: bold;
+                    margin-bottom: 4px;
+                }
+                .header-col span {
+                    font-size: 28px;
+                    font-weight: 800;
+                }
+                .title-box {
+                    display: grid;
+                    grid-template-columns: 4fr 1.2fr;
+                    border: 2px solid #8faadc;
+                    margin-bottom: 15px;
+                }
+                .title-text {
+                    background-color: #d9e1f2;
+                    font-size: 34px;
+                    font-weight: bold;
+                    text-align: center;
+                    padding: 15px;
+                    border-right: 2px solid #8faadc;
+                }
+                .operario-text {
+                    display: flex;
+                    align-items: center;
+                    padding-left: 15px;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                .grid-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .grid-table td {
+                    border: 1px solid #8faadc;
+                    height: 35px;
+                    padding: 6px 12px;
+                    font-size: 15px;
+                    vertical-align: middle;
+                }
+                .label-cell {
+                    font-weight: bold;
+                    width: 180px;
+                }
+                .empty-row td {
+                    height: 35px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header-top">
+                <div class="header-col" style="text-align: left;">
+                    <label>Nombre de Contrata</label>
+                    <span style="font-size: 30px;">${contractor || '____________'}</span>
+                </div>
+                <div class="header-col">
+                    <label>Sitios</label>
+                    <span style="font-size: 30px;">${siteNames}</span>
+                </div>
+                <div class="header-col" style="text-align: right;">
+                    <label>Fecha</label>
+                    <span style="font-size: 24px;">${formattedDate || '___/___/______'}</span>
+                </div>
+            </div>
+
+            <div class="title-box">
+                <div class="title-text">Planilla de control</div>
+                <div class="operario-text">Operario: ______________</div>
+            </div>
+
+            <table class="grid-table">
+                <tr>
+                    <td class="label-cell">Fecha de inicio:</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Fecha fin:</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                
+                <tr>
+                    <td class="label-cell" colspan="5" style="background-color: #f2f2f2;">Observaciones:</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="height: 60px; vertical-align: top; font-size: 16px; line-height: 1.4; white-space: pre-wrap; font-weight: bold; border-bottom: none;">${notes || ''}</td>
+                </tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+            </table>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+};
+
+window.printRotulosFromPrintModal = function() {
+    const contractor = document.getElementById('print-site-contractor') ? document.getElementById('print-site-contractor').value.trim() : '';
+    const siteNames = document.getElementById('print-site-name') ? document.getElementById('print-site-name').value.trim() : '';
+    const day = document.getElementById('print-site-day') ? document.getElementById('print-site-day').value : '';
+    const month = document.getElementById('print-site-month') ? document.getElementById('print-site-month').value : '';
+    const year = document.getElementById('print-site-year') ? document.getElementById('print-site-year').value : '';
+
+    if (!siteNames) {
+        showToast("Por favor ingresa al menos un nombre de sitio para generar los rótulos", "danger");
+        return;
+    }
+
+    const countStr = prompt("¿Cuántos palets deseas rotular para este ingreso? (Ej: 3)", "3");
+    if (countStr === null) return; // cancelado
+
+    const count = parseInt(countStr, 10);
+    if (isNaN(count) || count < 1) {
+        showToast("Por favor ingresa un número válido de palets (ej: 1, 2, 3...)", "danger");
+        return;
+    }
+
+    const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
+        return;
+    }
+
+    let labelsHtml = '';
+    for (let i = 1; i <= count; i++) {
+        const fontSizeContrata = contractor.length > 16 ? '18px' : '26px';
+        const fontSizeSitios = siteNames.length > 40 ? '15px' : (siteNames.length > 20 ? '20px' : '28px');
+
+        labelsHtml += `
+            <div class="label-page">
+                <div class="label-header">
+                    <span class="label-badge-label">CONTRATA</span>
+                    <span class="label-badge-value" style="font-size: ${fontSizeContrata};">${contractor || '____________'}</span>
+                </div>
+                
+                <div class="label-content">
+                    <div style="margin-bottom: 8px;">
+                        <div class="label-field-title">SITIOS</div>
+                        <div class="label-field-value" style="font-size: ${fontSizeSitios};">${siteNames}</div>
+                    </div>
+                    <div>
+                        <span class="label-field-title">FECHA INGRESO:</span>
+                        <span class="label-date-value">${formattedDate || '___/___/______'}</span>
+                    </div>
+                </div>
+
+                <div class="label-footer">
+                    <span class="label-footer-brand">Control de Ingresos</span>
+                    <span class="label-footer-counter">PALET ${i}/${count}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <title>Rótulos para Palets - Zebra</title>
+            <style>
+                @page {
+                    size: 100mm 80mm;
+                    margin: 0;
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    width: 100mm;
+                    height: 80mm;
+                    background-color: #ffffff;
+                    color: #000000;
+                    font-family: 'Arial', sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .label-page {
+                    width: 100mm;
+                    height: 80mm;
+                    box-sizing: border-box;
+                    padding: 4mm 6mm;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    page-break-after: always;
+                    overflow: hidden;
+                }
+                .label-page:last-child {
+                    page-break-after: avoid;
+                }
+                .label-header {
+                    border-bottom: 4.5px solid #000000;
+                    padding-bottom: 2px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                }
+                .label-badge-label {
+                    font-size: 12px;
+                    font-weight: 800;
+                    color: #000;
+                }
+                .label-badge-value {
+                    font-size: 26px;
+                    font-weight: 900;
+                    text-align: right;
+                }
+                .label-content {
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    gap: 6px;
+                    margin: 4px 0;
+                }
+                .label-field-title {
+                    font-size: 12px;
+                    font-weight: 800;
+                    color: #000;
+                    text-transform: uppercase;
+                }
+                .label-field-value {
+                    font-size: 28px;
+                    font-weight: 900;
+                    line-height: 1.1;
+                }
+                .label-date-value {
+                    font-size: 20px;
+                    font-weight: 900;
+                    margin-left: 6px;
+                }
+                .label-footer {
+                    border-top: 2px solid #000000;
+                    padding-top: 4px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                }
+                .label-footer-brand {
+                    font-size: 11px;
+                    font-weight: 800;
+                    color: #000;
+                    text-transform: uppercase;
+                }
+                .label-footer-counter {
+                    font-size: 28px;
+                    font-weight: 900;
+                    color: #000000;
+                    line-height: 1;
+                }
+            </style>
+        </head>
+        <body>
+            ${labelsHtml}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 };
