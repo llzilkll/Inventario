@@ -1010,7 +1010,8 @@ window.exportToCSV = function() {
     }
 
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "ID,Nombre del Sitio,Contrato,Empresa Contrata,Estado,Fecha de Ingreso (DD/MM/AAAA),Observaciones\n";
+    csvContent += "sep=;\n";
+    csvContent += "ID;Nombre del Sitio;Contrato;Empresa Contrata;Estado;Fecha de Ingreso (DD/MM/AAAA);Observaciones\n";
 
     filteredSites.forEach(s => {
         const row = [
@@ -1022,7 +1023,7 @@ window.exportToCSV = function() {
             `"${formatDate(s.date)}"`,
             `"${(s.notes || '').replace(/"/g, '""')}"`
         ];
-        csvContent += row.join(",") + "\n";
+        csvContent += row.join(";") + "\n";
     });
 
     const encodedUri = encodeURI(csvContent);
