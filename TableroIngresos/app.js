@@ -1084,6 +1084,9 @@ window.printCaratulaFromModal = function() {
 
     const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
 
+    const headerSitesFontSize = siteNames.length > 50 ? '16px' : (siteNames.length > 25 ? '22px' : '30px');
+    const headerContractorFontSize = contractor.length > 20 ? '20px' : '30px';
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
@@ -1174,11 +1177,11 @@ window.printCaratulaFromModal = function() {
             <div class="header-top">
                 <div class="header-col" style="text-align: left;">
                     <label>Nombre de Contrata</label>
-                    <span style="font-size: 30px;">${contractor || '____________'}</span>
+                    <span style="font-size: ${headerContractorFontSize};">${contractor || '____________'}</span>
                 </div>
                 <div class="header-col">
                     <label>Sitios</label>
-                    <span style="font-size: 30px;">${siteNames}</span>
+                    <span style="font-size: ${headerSitesFontSize};">${siteNames}</span>
                 </div>
                 <div class="header-col" style="text-align: right;">
                     <label>Fecha</label>
@@ -1238,6 +1241,7 @@ window.printCaratulaFromModal = function() {
 window.printRotulosFromModal = function() {
     const contractor = DOM.siteContractor ? DOM.siteContractor.value.trim() : '';
     const siteNames = DOM.siteName ? DOM.siteName.value.trim() : '';
+    const contract = DOM.siteContract ? DOM.siteContract.value : 'GU';
     const day = DOM.siteDay ? DOM.siteDay.value : '';
     const month = DOM.siteMonth ? DOM.siteMonth.value : '';
     const year = DOM.siteYear ? DOM.siteYear.value : '';
@@ -1283,8 +1287,8 @@ window.printRotulosFromModal = function() {
                         <div class="label-field-value" style="font-size: ${fontSizeSitios};">${siteNames}</div>
                     </div>
                     <div>
-                        <span class="label-field-title">FECHA INGRESO:</span>
-                        <span class="label-date-value">${formattedDate || '___/___/______'}</span>
+                        <span class="label-field-title">CONTRATO / FECHA INGRESO:</span>
+                        <span class="label-date-value">${contract} / ${formattedDate || '___/___/______'}</span>
                     </div>
                 </div>
 
@@ -1484,6 +1488,9 @@ window.printCaratulaFromPrintModal = function() {
 
     const formattedDate = (day && month && year) ? `${String(day).padStart(2, '0')}/${month}/${year}` : '';
 
+    const headerSitesFontSize = siteNames.length > 50 ? '16px' : (siteNames.length > 25 ? '22px' : '30px');
+    const headerContractorFontSize = contractor.length > 20 ? '20px' : '30px';
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         showToast("No se pudo abrir la ventana de impresión. Verifica si tienes bloqueador de ventanas emergentes.", "danger");
@@ -1574,11 +1581,11 @@ window.printCaratulaFromPrintModal = function() {
             <div class="header-top">
                 <div class="header-col" style="text-align: left;">
                     <label>Nombre de Contrata</label>
-                    <span style="font-size: 30px;">${contractor || '____________'}</span>
+                    <span style="font-size: ${headerContractorFontSize};">${contractor || '____________'}</span>
                 </div>
                 <div class="header-col">
                     <label>Sitios</label>
-                    <span style="font-size: 30px;">${siteNames}</span>
+                    <span style="font-size: ${headerSitesFontSize};">${siteNames}</span>
                 </div>
                 <div class="header-col" style="text-align: right;">
                     <label>Fecha</label>
@@ -1638,6 +1645,7 @@ window.printCaratulaFromPrintModal = function() {
 window.printRotulosFromPrintModal = function() {
     const contractor = document.getElementById('print-site-contractor') ? document.getElementById('print-site-contractor').value.trim() : '';
     const siteNames = document.getElementById('print-site-name') ? document.getElementById('print-site-name').value.trim() : '';
+    const contract = document.getElementById('print-site-contract') ? document.getElementById('print-site-contract').value : 'GU';
     const day = document.getElementById('print-site-day') ? document.getElementById('print-site-day').value : '';
     const month = document.getElementById('print-site-month') ? document.getElementById('print-site-month').value : '';
     const year = document.getElementById('print-site-year') ? document.getElementById('print-site-year').value : '';
@@ -1682,8 +1690,8 @@ window.printRotulosFromPrintModal = function() {
                         <div class="label-field-value" style="font-size: ${fontSizeSitios};">${siteNames}</div>
                     </div>
                     <div>
-                        <span class="label-field-title">FECHA INGRESO:</span>
-                        <span class="label-date-value">${formattedDate || '___/___/______'}</span>
+                        <span class="label-field-title">CONTRATO / FECHA INGRESO:</span>
+                        <span class="label-date-value">${contract} / ${formattedDate || '___/___/______'}</span>
                     </div>
                 </div>
 
