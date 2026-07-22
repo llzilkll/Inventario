@@ -18,6 +18,7 @@ const firebaseConfig = {
 };
 
 let rtdbRef = null;
+let searchTimeout = null;
 
 // Estado global de la aplicación
 let state = {
@@ -233,17 +234,13 @@ function initEventListeners() {
 
     if (DOM.filterSearch) {
         DOM.filterSearch.addEventListener('input', (e) => {
-            state.filterSearch = e.target.value.toLowerCase().trim();
-            if (DOM.tableSearch) DOM.tableSearch.value = e.target.value;
-            renderApp();
+            window.handleSearchInput(e.target.value);
         });
     }
 
     if (DOM.tableSearch) {
         DOM.tableSearch.addEventListener('input', (e) => {
-            state.filterSearch = e.target.value.toLowerCase().trim();
-            if (DOM.filterSearch) DOM.filterSearch.value = e.target.value;
-            renderApp();
+            window.handleSearchInput(e.target.value);
         });
     }
 
@@ -1267,17 +1264,21 @@ window.printRotulosFromModal = function() {
 
     let labelsHtml = '';
     for (let i = 1; i <= count; i++) {
+        // Calcular tamaño de fuente dinámico para evitar desbordes
+        const fontSizeContrata = contractor.length > 16 ? '18px' : '26px';
+        const fontSizeSitios = siteNames.length > 40 ? '15px' : (siteNames.length > 20 ? '20px' : '28px');
+
         labelsHtml += `
             <div class="label-page">
                 <div class="label-header">
                     <span class="label-badge-label">CONTRATA</span>
-                    <span class="label-badge-value">${contractor || '____________'}</span>
+                    <span class="label-badge-value" style="font-size: ${fontSizeContrata};">${contractor || '____________'}</span>
                 </div>
                 
                 <div class="label-content">
                     <div style="margin-bottom: 8px;">
                         <div class="label-field-title">SITIOS</div>
-                        <div class="label-field-value">${siteNames}</div>
+                        <div class="label-field-value" style="font-size: ${fontSizeSitios};">${siteNames}</div>
                     </div>
                     <div>
                         <span class="label-field-title">FECHA INGRESO:</span>
@@ -1403,4 +1404,29 @@ window.printRotulosFromModal = function() {
         </html>
     `);
     printWindow.document.close();
+};
+
+window.handleSearchInput = function(val) {
+    state.filterSearch = val.toLowerCase().trim();
+    
+    // Sincronizar los valores de los inputs visualmente
+    if (DOM.filterSearch && DOM.filterSearch.value !== val) {
+        DOM.filterSearch.value = val;
+    }
+    if (DOM.tableSearch && DOM.tableSearch.value !== val) {
+        DOM.tableSearch.value = val;
+    }
+
+    const filteredSites = getFilteredSites();
+    
+    // Actualizar elementos inmediatos de la tabla
+    updateKPIs(filteredSites);
+    renderPivotTable(filteredSites);
+    renderSitesTable(filteredSites);
+
+    // Debounce de gráficos pesados (Chart.js)
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        renderCharts(filteredSites);
+    }, 200);
 };
