@@ -1222,9 +1222,6 @@ window.printCaratulaFromModal = function() {
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
                 <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
-                <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
             </table>
 
             <script>
