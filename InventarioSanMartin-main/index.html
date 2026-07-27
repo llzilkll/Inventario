@@ -454,6 +454,10 @@
                             <div class="nav-icon">⇄</div>
                             <span>Conciliador de Materiales</span>
                         </button>
+                        <button onclick="window.location.href='rotulos.html'" class="nav-item">
+                            <div class="nav-icon">🏷️</div>
+                            <span>Generador de Rótulos</span>
+                        </button>
                         <button id="tab-scrap" onclick="switchTab('scrap')" class="nav-item">
                             <div class="nav-icon">♻️</div>
                             <span>Gestión de Scrap</span>
@@ -1219,7 +1223,7 @@
     <div id="group-details-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-[60] transition-opacity">
         <div
-            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh] overflow-hidden">
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh] overflow-hidden">
             <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center shrink-0">
                 <div>
                     <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider">Detalle de Series</p>
@@ -1250,6 +1254,7 @@
                             <th class="px-4 py-2">#</th>
                             <th class="px-4 py-2">N° Serie</th>
                             <th class="px-4 py-2 text-center">Cant.</th>
+                            <th class="px-4 py-2 text-center">Sitio Origen</th>
                             <th class="px-4 py-2 text-center">Responsable</th>
                             <th class="px-4 py-2 text-right">Acciones</th>
                         </tr>
@@ -1286,25 +1291,27 @@
     <!-- MODAL DE GESTIÓN (ACTUALIZADO CON AUTOCOMPLETADO Y FOTO) -->
     <div id="management-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-50 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh] overflow-hidden">
+        <div id="management-modal-inner" class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh] overflow-hidden">
             <!-- Header Modal -->
-            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 px-3 sm:px-6 py-4 flex items-center justify-between gap-2 select-none">
+                <!-- Navegación y Título -->
+                <div class="flex items-center gap-1 sm:gap-3 min-w-0 flex-1 justify-start">
                     <button id="mgmt-nav-prev" onclick="navigateLocation('prev')"
-                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">←</button>
-                    <div class="text-center">
-                        <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider">Gestión de Ubicación</p>
-                        <h3 id="mgmt-modal-title" class="text-2xl font-bold text-white">E1N1P1</h3>
+                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0">←</button>
+                    <div class="text-center min-w-0 flex-1">
+                        <p class="text-indigo-200 text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Gestión de Ubicación</p>
+                        <h3 id="mgmt-modal-title" class="text-base sm:text-lg md:text-2xl font-bold text-white truncate" title="Ubicación">E1N1P1</h3>
                     </div>
                     <button id="mgmt-nav-next" onclick="navigateLocation('next')"
-                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">→</button>
+                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0">→</button>
                 </div>
-                <div class="flex items-center gap-2">
+                <!-- Acciones -->
+                <div class="flex items-center gap-1.5 shrink-0">
                     <button onclick="printLocationContent()"
-                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition"
+                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition text-sm sm:text-base"
                         title="Imprimir Contenido">🖨️</button>
                     <button onclick="closeManagementModal()"
-                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition">✖</button>
+                        class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-lg transition text-sm sm:text-base">✖</button>
                 </div>
             </div>
 
@@ -1316,12 +1323,20 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
+                <!-- Buscador de Contenido (solo visible si tiene items o para ubicaciones especiales) -->
+                <div id="mgmt-search-container" class="relative mb-4 hidden">
+                    <input type="text" id="mgmt-location-search-input" placeholder="Buscar por catálogo, parte, serie u origen..."
+                        class="w-full p-3 pl-10 border-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl text-sm outline-none focus:border-indigo-500 transition"
+                        oninput="window.renderManagementContent()">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                </div>
+
                 <!-- Lista de Contenido Actual -->
                 <h4 class="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📦 Contenido Actual</h4>
                 <div id="mgmt-content-list" class="space-y-3 mb-8"></div>
 
                 <!-- Formulario Agregar Item -->
-                <div class="bg-white p-5 rounded-xl border-2 border-dashed border-indigo-200">
+                <div id="mgmt-add-item-card" class="bg-white p-5 rounded-xl border-2 border-dashed border-indigo-200">
                     <h4 class="text-sm font-bold text-indigo-600 mb-4 flex items-center gap-2">
                         <span class="bg-indigo-100 w-6 h-6 rounded flex items-center justify-center text-xs">➕</span>
                         Agregar Item Aquí
@@ -1479,16 +1494,37 @@
         onclick="if(event.target===this) closeEditScrapModal()">
         <div
             class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 dark:border-slate-700">
-            <div class="bg-amber-600 px-6 py-4 flex justify-between items-center shrink-0">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                    <span>✏️</span> Editar Orden de Scrap: <span id="edit-scrap-order-id-title"></span>
+            <div class="bg-amber-600 px-4 sm:px-6 py-4 flex justify-between items-center shrink-0 gap-2 select-none">
+                <h3 class="text-sm sm:text-lg md:text-xl font-bold text-white truncate flex items-center gap-2 min-w-0">
+                    <span>✏️</span> <span class="truncate">Editar Orden de Scrap: <span id="edit-scrap-order-id-title"></span></span>
                 </h3>
                 <button onclick="closeEditScrapModal()"
-                    class="text-amber-100 hover:text-white text-2xl font-bold">&times;</button>
+                    class="text-amber-100 hover:text-white text-2xl font-bold shrink-0">&times;</button>
             </div>
             <div class="flex-1 overflow-y-auto p-6 space-y-4">
                 <p class="text-xs text-gray-500 dark:text-gray-400">Modifique los catálogos y pesos de los palets de
                     esta orden de scrap. Al guardar, se recalculará el peso total.</p>
+
+                <!-- ID de Orden / Remito y Remito Conformado -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div class="space-y-1">
+                        <label for="edit-scrap-order-id-input" class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ID de Orden / N° de Remito</label>
+                        <input type="text" id="edit-scrap-order-id-input" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div class="space-y-1 flex flex-col justify-between">
+                        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Remito Conformado (Imagen)</label>
+                        <div class="flex items-center gap-3">
+                            <label class="cursor-pointer bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold py-2 px-3 rounded-lg text-xs shadow-sm transition flex items-center gap-1.5">
+                                📷 Subir Remito
+                                <input type="file" id="edit-scrap-remito-file" class="hidden" accept="image/*" onchange="window.handleScrapRemitoUpload(event)">
+                            </label>
+                            <div id="edit-scrap-remito-preview-container" class="hidden flex items-center gap-2">
+                                <img id="edit-scrap-remito-preview" class="w-10 h-10 rounded object-cover border border-slate-200 dark:border-slate-700 cursor-pointer" onclick="window.openImageModal(this.src)" title="Ver Remito">
+                                <button type="button" class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="window.clearScrapRemitoPhoto()">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
                     <table class="w-full text-sm text-left text-gray-600 dark:text-gray-300 min-w-[700px]">
@@ -2994,6 +3030,7 @@
                 floorGrid.className = 'flex flex-wrap justify-center gap-4';
 
                 if (!floorLocations.has('PISO GENERAL')) floorLocations.add('PISO GENERAL');
+                if (!floorLocations.has('PREPARACION_SCRAP')) floorLocations.add('PREPARACION_SCRAP');
 
                 const isAdmin = esAdmin;
 
@@ -3403,6 +3440,33 @@
         window.openManagementModal = function (location) {
             currentManagementLocation = location;
             document.getElementById('mgmt-modal-title').textContent = location;
+
+            // Personalizar tamaño de ventana, buscador y formulario para PREPARACION_SCRAP
+            const innerModal = document.getElementById('management-modal-inner');
+            if (innerModal) {
+                if (location === 'PREPARACION_SCRAP') {
+                    innerModal.className = "bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[90vh] overflow-hidden";
+                } else {
+                    innerModal.className = "bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh] overflow-hidden";
+                }
+            }
+
+            const addCard = document.getElementById('mgmt-add-item-card');
+            if (addCard) {
+                if (location === 'PREPARACION_SCRAP') {
+                    addCard.classList.add(HIDDEN_CLASS);
+                } else {
+                    addCard.classList.remove(HIDDEN_CLASS);
+                }
+            }
+
+            const searchContainer = document.getElementById('mgmt-search-container');
+            if (searchContainer) {
+                searchContainer.classList.remove(HIDDEN_CLASS);
+                const mgmtSearchInput = document.getElementById('mgmt-location-search-input');
+                if (mgmtSearchInput) mgmtSearchInput.value = '';
+            }
+
             renderManagementContent();
 
             // Reset form
@@ -3421,14 +3485,28 @@
             document.getElementById('management-modal').classList.remove(HIDDEN_CLASS);
         }
 
-        function renderManagementContent() {
+        window.renderManagementContent = function() {
             if (!currentManagementLocation) return;
-            const items = inventoryItems.filter(i => i.ubicacion === currentManagementLocation);
+            let items = inventoryItems.filter(i => i.ubicacion === currentManagementLocation);
+            
+            // Filtrar si el buscador de ubicación tiene texto
+            const searchInput = document.getElementById('mgmt-location-search-input');
+            const qFilter = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (qFilter) {
+                items = items.filter(item => 
+                    String(item.name || '').toLowerCase().includes(qFilter) ||
+                    String(item.numParte || '').toLowerCase().includes(qFilter) ||
+                    String(item.numSerie || '').toLowerCase().includes(qFilter) ||
+                    String(item.sitioDesmonte || '').toLowerCase().includes(qFilter) ||
+                    String(item.sitioOrigen || '').toLowerCase().includes(qFilter)
+                );
+            }
+
             const list = document.getElementById('mgmt-content-list');
             list.innerHTML = '';
 
             if (items.length === 0) {
-                list.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-4">Ubicación vacía</p>';
+                list.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-4">${qFilter ? 'Sin resultados para el filtro' : 'Ubicación vacía'}</p>`;
                 return;
             }
 
@@ -3444,7 +3522,7 @@
             // Agrupar ítems por Nombre + Parte + Estado (IGNORANDO SERIE para la vista unificada)
             const groups = {};
             items.forEach(item => {
-                const key = [(item.name || '').trim(), (item.numParte || '').trim(), (item.estado || '')].join('||');
+                const key = [String(item.name || '').trim(), String(item.numParte || '').trim(), String(item.estado || '')].join('||');
 
                 if (!groups[key]) groups[key] = { ...item, items: [], totalQty: 0 };
                 groups[key].items.push(item);
@@ -3452,7 +3530,7 @@
             });
 
             // Ordenar grupos por Nombre
-            const sortedGroups = Object.values(groups).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            const sortedGroups = Object.values(groups).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
 
             sortedGroups.forEach(group => {
                 const div = document.createElement('div');
@@ -3468,12 +3546,24 @@
                     openGroupDetails(rawName, rawPart, rawStatus);
                 };
 
+                // Extraer sitios únicos de origen/desmonte para este grupo
+                const sites = Array.from(new Set(group.items.map(i => i.sitioOrigen || i.sitioDesmonte || 'AJUSTE'))).filter(Boolean);
+                const sitesStr = sites.join(', ');
+
                 div.innerHTML = `
                     <div class="flex items-center gap-3 min-w-0 mr-3">
                         ${group.photoUrl ? `<img src="${group.photoUrl}" onclick="event.stopPropagation(); openImageModal('${group.photoUrl}')" class="w-10 h-10 rounded object-cover border border-gray-200 cursor-pointer">` : ''}
-                        <div>
+                        <div class="min-w-0 flex-1">
                             <p class="text-sm font-bold text-gray-800 truncate">${group.name}</p>
-                            <p class="text-xs text-gray-500 truncate flex items-center gap-1.5 flex-wrap"><span>Parte: ${group.numParte || '-'}</span> <span>|</span> <span>Estado:</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getEstadoColorClass(group.estado)}">${group.estado || '-'}</span></p>
+                            <p class="text-xs text-gray-500 truncate flex items-center gap-1.5 flex-wrap">
+                                <span>Parte: ${group.numParte || '-'}</span> 
+                                <span>|</span> 
+                                <span>Estado:</span> 
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${getEstadoColorClass(group.estado)}">${group.estado || '-'}</span>
+                            </p>
+                            <p class="text-[11px] text-gray-600 truncate mt-0.5">
+                                <span class="text-indigo-600 font-bold">Sitio Origen:</span> ${sitesStr}
+                            </p>
                             <p class="text-[10px] text-indigo-600 font-bold mt-0.5">Ver ${group.items.length} N° de Serie(s)</p>
                         </div>
                     </div>
@@ -3485,6 +3575,7 @@
                 list.appendChild(div);
             });
         }
+        const renderManagementContent = window.renderManagementContent;
 
         window.printLocationContent = function () {
             if (!currentManagementLocation) return;
@@ -3547,7 +3638,7 @@
             tbody.innerHTML = '';
 
             if (!currentGroupDetails || currentGroupDetails.items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">No hay ítems en este grupo.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-400">No hay ítems en este grupo.</td></tr>';
                 return;
             }
 
@@ -3558,6 +3649,7 @@
                     <td class="px-4 py-2 font-mono text-xs text-gray-500 dark:text-gray-400">${idx + 1}</td>
                     <td class="px-4 py-2 font-bold text-gray-700 dark:text-gray-200 cursor-pointer hover:text-indigo-600 hover:underline" onclick="showItemMovementInfo('${item.id}')" title="Ver información de movimiento">${item.numSerie || 'S/N'}</td>
                     <td class="px-4 py-2 text-center text-xs dark:text-gray-300">${item.cantidad || 1}</td>
+                    <td class="px-4 py-2 text-center text-xs dark:text-gray-300 font-semibold max-w-[120px] truncate" title="${item.sitioDesmonte || 'AJUSTE'}">${item.sitioDesmonte || 'AJUSTE'}</td>
                     <td class="px-4 py-2 text-center">
                         <span class="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-bold">${item.responsable || 'Desconocido'}</span>
                     </td>
@@ -3589,6 +3681,7 @@
 
             const responsable = item.responsable || 'Desconocido';
             const actionType = item.fechaMovimiento ? 'Último movimiento' : 'Ingreso inicial';
+            const sitioOrigen = item.sitioDesmonte || 'AJUSTE_INVENTARIO';
 
             Swal.fire({
                 title: 'Información de Registro',
@@ -3597,6 +3690,10 @@
                         <div class="flex justify-between border-b border-slate-100 pb-2">
                             <strong>N° Serie:</strong>
                             <span class="font-mono text-gray-950 font-bold">${item.numSerie || 'S/N'}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-100 pb-2">
+                            <strong>Sitio de Origen:</strong>
+                            <span class="text-indigo-600 font-semibold">${sitioOrigen}</span>
                         </div>
                         <div class="flex justify-between border-b border-slate-100 pb-2">
                             <strong>Ubicación Actual:</strong>
@@ -3643,9 +3740,9 @@
             printWindow.document.write('<strong>Parte:</strong> ' + (currentGroupDetails.part || 'N/A') + '<br>');
             printWindow.document.write('<strong>Estado:</strong> ' + (currentGroupDetails.status || 'N/A') + '</p>');
 
-            printWindow.document.write('<table><thead><tr><th>#</th><th>N° Serie</th><th>Cantidad</th></tr></thead><tbody>');
+            printWindow.document.write('<table><thead><tr><th>#</th><th>N° Serie</th><th>Cantidad</th><th>Sitio Origen</th></tr></thead><tbody>');
             items.forEach((item, idx) => {
-                printWindow.document.write(`<tr><td>${idx + 1}</td><td>${item.numSerie || 'S/N'}</td><td>${item.cantidad || 1}</td></tr>`);
+                printWindow.document.write(`<tr><td>${idx + 1}</td><td>${item.numSerie || 'S/N'}</td><td>${item.cantidad || 1}</td><td>${item.sitioDesmonte || 'AJUSTE'}</td></tr>`);
             });
             printWindow.document.write('</tbody></table></' + 'body></html>');
             printWindow.document.close();
@@ -5124,6 +5221,21 @@
             showStatus('⏳ Finalizando orden, subiendo fotos...');
 
             try {
+                // 1. Obtener ítems del contenedor PREPARACION_SCRAP y resolver su descripción en el maestro
+                const activosRef = getCollectionRef();
+                const prepSnap = await getDocs(query(activosRef, where("ubicacion", "==", "PREPARACION_SCRAP")));
+                const prepScrapItems = prepSnap.docs.map(d => {
+                    const itemData = d.data();
+                    // Buscar descripción en el maestro
+                    let resolvedDesc = '';
+                    if (typeof maestroData !== 'undefined' && Array.isArray(maestroData)) {
+                        const mItem = maestroData.find(x => x.catalogo === itemData.name);
+                        if (mItem) resolvedDesc = mItem.descripcion;
+                    }
+                    return { id: d.id, ...itemData, resolvedDescription: resolvedDesc };
+                });
+
+                // 2. Procesar fotos de palets
                 const processedPallets = await Promise.all(currentScrapOrder.map(async (pallet, index) => {
                     let fotos = pallet.fotos || {};
                     let paletData = fotos.palet || localStorage.getItem('last_scrap_photo_palet');
@@ -5146,15 +5258,35 @@
                     };
                 }));
 
+                const batch = writeBatch(db);
+
+                // 3. Registrar movimientos de egreso y eliminar físicamente del inventario activo
+                prepScrapItems.forEach(item => {
+                    registrarMovimiento('SALIDA_SCRAP', `${item.name} (Egresado desde PREPARACION_SCRAP en reporte ${orderId})`, item.cantidad || 1, localStorage.getItem('operario_gram') || 'DESCONOCIDO', 'SCRAP_SALIDA');
+                    batch.delete(doc(activosRef, item.id));
+                });
+
+                // 4. Crear la orden de scrap en Firestore
                 const scrapCollection = getScrapCollectionRef();
-                await addDoc(scrapCollection, {
+                const newDocRef = doc(scrapCollection);
+                batch.set(newDocRef, {
                     orderId,
                     createdAt: serverTimestamp(),
                     operario_gram: localStorage.getItem('operario_gram') || 'DESCONOCIDO',
                     pallets: processedPallets,
                     totalPeso: processedPallets.reduce((sum, p) => sum + p.peso, 0),
-                    totalPallets: processedPallets.length
+                    totalPallets: processedPallets.length,
+                    associatedItems: prepScrapItems.map(i => ({
+                        id: i.id,
+                        name: i.name,
+                        numParte: i.numParte || '',
+                        cantidad: i.cantidad || 1,
+                        sitioOrigen: i.sitioOrigen || i.sitioDesmonte || '',
+                        descripcion: i.resolvedDescription || ''
+                    }))
                 });
+
+                await batch.commit();
 
                 await set(ref(rtdb, 'temp_scrap_session/GLOBAL_DEPOSITO'), null);
 
@@ -5265,9 +5397,13 @@
                     window.scrapPalletsMap[doc.id] = data.pallets || [];
                     window.scrapOrdersMap[doc.id] = data;
 
+                    const remitoIndicator = data.remitoPhotoUrl 
+                        ? `<span class="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700" onclick="window.openImageModal('${data.remitoPhotoUrl}')" title="Ver Remito Conformado">📷</span>` 
+                        : '';
+
                     html += `
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
-                    <td class="px-2.5 py-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">${data.orderId || doc.id.slice(-6)}</td>
+                    <td class="px-2.5 py-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">${data.orderId || doc.id.slice(-6)}${remitoIndicator}</td>
                     <td class="px-2.5 py-3 text-xs whitespace-nowrap">${fecha}</td>
                     <td class="px-2.5 py-3 font-medium">${usuario}</td>
                     <td class="px-2.5 py-3 text-center font-bold text-gray-700 dark:text-gray-300">${cantPalets}</td>
@@ -5487,8 +5623,6 @@
                 return;
             }
 
-            let csvContent = "ID Orden;Fecha;Operario;Total Peso;Total Palets;Catalogo (4000...);Referencia (RZ);Descripcion;Peso Palet;Foto Palet URL;Foto Balanza URL\n";
-
             const orderId = orderData.orderId || 'N/A';
             const createdAtDate = orderData.createdAt && orderData.createdAt.seconds ? new Date(orderData.createdAt.seconds * 1000) : new Date();
             const createdAt = createdAtDate.toLocaleString('es-AR');
@@ -5505,21 +5639,21 @@
                 'RZ0047': '4000094628'
             };
 
+            const rows = [];
             if (orderData.pallets && orderData.pallets.length > 0) {
                 orderData.pallets.forEach(pallet => {
                     const codigo4000 = pallet.codigoParte || pallet.itemCode || traductor4000[pallet.catalogo] || 'N/A';
-                    const codigoParte = `"${codigo4000.replace(/"/g, '""')}"`;
-                    const catalogo = `"${(pallet.catalogo || '').replace(/"/g, '""')}"`;
-                    const descripcion = `"${(pallet.descripcion || '').replace(/"/g, '""')}"`;
+                    const codigoParte = codigo4000;
+                    const catalogo = pallet.catalogo || '';
+                    const descripcion = pallet.descripcion || '';
                     const pesoPalet = (pallet.peso || 0).toFixed(2);
-                    const fotoPaletUrl = pallet.fotoPaletUrl || '';
-                    const fotoBalanzaUrl = pallet.fotoBalanzaUrl || '';
-
-                    csvContent += `${orderId};${createdAt};${operario};${totalPeso};${totalPallets};${codigoParte};${catalogo};${descripcion};${pesoPalet};${fotoPaletUrl};${fotoBalanzaUrl}\n`;
+                    rows.push({ codigoParte, catalogo, descripcion, pesoPalet });
                 });
+            }
 
-                // Generar resumen por catálogo
-                const summary = {};
+            // Generar resumen por catálogo
+            const summary = {};
+            if (orderData.pallets && orderData.pallets.length > 0) {
                 orderData.pallets.forEach(pallet => {
                     const codigo4000 = pallet.codigoParte || pallet.itemCode || traductor4000[pallet.catalogo] || 'N/A';
                     const catRZ = pallet.catalogo || '';
@@ -5535,18 +5669,76 @@
                     }
                     summary[codigo4000].count++;
                 });
-
-                csvContent += `\n`;
-                csvContent += `Catálogo;Descripción;Cantidad de Palets\n`;
-                Object.entries(summary).forEach(([codigo4000, info]) => {
-                    const codigoParte = `"${codigo4000.replace(/"/g, '""')}"`;
-                    const descripcion = `"${info.description.replace(/"/g, '""')}"`;
-                    csvContent += `${codigoParte};${descripcion};${info.count} palets\n`;
-                });
-            } else {
-                csvContent += `${orderId};${createdAt};${operario};${totalPeso};${totalPallets};;;;;;\n`;
             }
 
+            const maxPalletRows = Math.max(rows.length, 5);
+            const csvLines = [];
+
+            // Fila 1: Cabeceras
+            csvLines.push("ID Orden;Total Palets;Catalogo (4000...);Referencia (RZ);Descripcion;Peso Palet");
+
+            // Rellenar filas de palets con metadatos en la columna A y B
+            for (let i = 0; i < maxPalletRows; i++) {
+                let colA = "";
+                let colB = "";
+
+                if (i === 0) { colA = `"${orderId}"`; colB = totalPallets; }
+                else if (i === 1) { colA = "Fecha"; }
+                else if (i === 2) { colA = `"${createdAt}"`; }
+                else if (i === 3) { colA = "Operario"; }
+                else if (i === 4) { colA = `"${operario}"`; }
+
+                const p = rows[i] || { codigoParte: "", catalogo: "", descripcion: "", pesoPalet: "" };
+                const pCode = p.codigoParte ? `"${p.codigoParte.replace(/"/g, '""')}"` : "";
+                const pCat = p.catalogo ? `"${p.catalogo.replace(/"/g, '""')}"` : "";
+                const pDesc = p.descripcion ? `"${p.descripcion.replace(/"/g, '""')}"` : "";
+                const pPeso = p.pesoPalet || "";
+
+                csvLines.push(`${colA};${colB};${pCode};${pCat};${pDesc};${pPeso}`);
+            }
+
+            // Fila de Peso Total
+            csvLines.push(`;;;Peso Total;;"${totalPeso} kg"`);
+
+            // Espaciado
+            csvLines.push("");
+            csvLines.push("");
+
+            // Tabla de Resumen por Catálogo
+            csvLines.push(";;Catálogo;;Descripción;Cantidad de Palets");
+            Object.entries(summary).forEach(([codigo4000, info]) => {
+                const codigoParte = `"${codigo4000.replace(/"/g, '""')}"`;
+                const descripcion = `"${info.description.replace(/"/g, '""')}"`;
+                csvLines.push(`;;${codigoParte};;${descripcion};"${info.count} palets"`);
+            });
+
+            // Espaciado
+            csvLines.push("");
+            csvLines.push("");
+
+            // Tabla de Ítems del Contenedor Asociados (PREPARACION_SCRAP)
+            csvLines.push(";;Catálogo;;Descripción;Unidades;Sitio");
+            if (orderData.associatedItems && orderData.associatedItems.length > 0) {
+                orderData.associatedItems.forEach(item => {
+                    const itemCat = `"${(item.name || '').replace(/"/g, '""')}"`;
+                    
+                    // Resolver descripción dinámicamente si está vacía
+                    let resolvedDesc = item.descripcion || '';
+                    if (!resolvedDesc && typeof maestroData !== 'undefined' && Array.isArray(maestroData)) {
+                        const mItem = maestroData.find(x => x.catalogo === item.name);
+                        if (mItem) resolvedDesc = mItem.descripcion;
+                    }
+                    const itemDesc = `"${resolvedDesc.replace(/"/g, '""')}"`;
+                    
+                    const itemQty = item.cantidad || 1;
+                    const itemSite = `"'${(item.sitioOrigen || '').replace(/"/g, '""')}"`; // Prefijo ' para Excel
+                    csvLines.push(`;;${itemCat};;${itemDesc};${itemQty};${itemSite}`);
+                });
+            } else {
+                csvLines.push(";;-;;No se asociaron ítems del contenedor;-;-");
+            }
+
+            const csvContent = csvLines.join("\n");
             const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -5555,8 +5747,11 @@
         };
 
         // --- EDICIÓN DE ÓRDENES DE SCRAP (ADMIN) ---
+        // --- EDICIÓN DE ÓRDENES DE SCRAP (ADMIN) ---
         window.currentEditingScrapDocId = null;
         window.currentEditingScrapPallets = [];
+        window.currentScrapRemitoPhotoBlob = null;
+        window.currentScrapRemitoPhotoUrl = '';
 
         window.openEditScrapModal = async function (docId) {
             try {
@@ -5571,8 +5766,29 @@
                 window.currentEditingScrapPallets = JSON.parse(JSON.stringify(data.pallets || []));
 
                 document.getElementById('edit-scrap-order-id-title').textContent = data.orderId || docId.slice(-6);
-                window.renderEditScrapPallets();
+                
+                // Rellenar ID de la orden en el input
+                const idInput = document.getElementById('edit-scrap-order-id-input');
+                if (idInput) {
+                    idInput.value = data.orderId || docId;
+                }
 
+                // Cargar imagen del remito conformado si existe
+                window.currentScrapRemitoPhotoBlob = null;
+                window.currentScrapRemitoPhotoUrl = data.remitoPhotoUrl || '';
+                const previewContainer = document.getElementById('edit-scrap-remito-preview-container');
+                const previewImg = document.getElementById('edit-scrap-remito-preview');
+                const fileInput = document.getElementById('edit-scrap-remito-file');
+                if (fileInput) fileInput.value = '';
+
+                if (window.currentScrapRemitoPhotoUrl) {
+                    if (previewImg) previewImg.src = window.currentScrapRemitoPhotoUrl;
+                    if (previewContainer) previewContainer.classList.remove('hidden');
+                } else {
+                    if (previewContainer) previewContainer.classList.add('hidden');
+                }
+
+                window.renderEditScrapPallets();
                 document.getElementById('edit-scrap-modal').classList.remove('hidden');
             } catch (e) {
                 console.error("Error al abrir modal de edición de scrap:", e);
@@ -5584,6 +5800,42 @@
             document.getElementById('edit-scrap-modal').classList.add('hidden');
             window.currentEditingScrapDocId = null;
             window.currentEditingScrapPallets = [];
+            window.currentScrapRemitoPhotoBlob = null;
+            window.currentScrapRemitoPhotoUrl = '';
+        };
+
+        window.handleScrapRemitoUpload = async function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                window.showStatus("⌛ Procesando imagen...");
+                const compressedBlob = await compressImage(file);
+                window.currentScrapRemitoPhotoBlob = compressedBlob;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewImg = document.getElementById('edit-scrap-remito-preview');
+                    const previewContainer = document.getElementById('edit-scrap-remito-preview-container');
+                    if (previewImg) previewImg.src = e.target.result;
+                    if (previewContainer) previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(compressedBlob);
+                window.showStatus("✓ Imagen cargada para guardar.");
+            } catch (err) {
+                console.error(err);
+                window.showStatus("Error al procesar la imagen.", true);
+            }
+        };
+
+        window.clearScrapRemitoPhoto = function () {
+            window.currentScrapRemitoPhotoBlob = null;
+            window.currentScrapRemitoPhotoUrl = '';
+            const previewContainer = document.getElementById('edit-scrap-remito-preview-container');
+            const fileInput = document.getElementById('edit-scrap-remito-file');
+            if (previewContainer) previewContainer.classList.add('hidden');
+            if (fileInput) fileInput.value = '';
+            window.showStatus("Remito eliminado de la edición.");
         };
 
         window.onEditScrapCatalogChange = function (index, code) {
@@ -5676,18 +5928,57 @@
                 return;
             }
 
+            const idInput = document.getElementById('edit-scrap-order-id-input');
+            const newOrderId = idInput ? idInput.value.trim() : '';
+            if (!newOrderId) {
+                window.showStatus("El ID de la orden / Número de remito no puede estar vacío.", true);
+                return;
+            }
+
             if (!await confirmAction("¿Guardar los cambios en esta orden de scrap?")) return;
 
             window.showStatus("⏳ Guardando cambios en la orden...");
 
             try {
+                let remitoPhotoUrl = window.currentScrapRemitoPhotoUrl;
+                let remitoPhotoPath = '';
+
+                // Si hay una nueva imagen de remito cargada localmente, subirla a Firebase Storage
+                if (window.currentScrapRemitoPhotoBlob) {
+                    window.showStatus("⏳ Subiendo remito conformado...");
+                    const filename = `${window.currentEditingScrapDocId}_remito.jpg`;
+                    const storageRef = sRef(storage, `fotos_remitos_conformados/${filename}`);
+                    await uploadBytes(storageRef, window.currentScrapRemitoPhotoBlob);
+                    remitoPhotoUrl = await getDownloadURL(storageRef);
+                    remitoPhotoPath = `fotos_remitos_conformados/${filename}`;
+                } else if (!window.currentScrapRemitoPhotoUrl) {
+                    // Si se borró el remito de la orden, intentar borrarlo también del Storage
+                    const filename = `${window.currentEditingScrapDocId}_remito.jpg`;
+                    try {
+                        await deleteObject(sRef(storage, `fotos_remitos_conformados/${filename}`));
+                    } catch (e) {
+                        // Ignorar si no existía el archivo
+                    }
+                    remitoPhotoUrl = '';
+                    remitoPhotoPath = '';
+                }
+
                 const docRef = doc(db, "artifacts", "default-app-id", "public", "data", "ordenes_scrap", window.currentEditingScrapDocId);
                 const nuevoTotalPeso = window.currentEditingScrapPallets.reduce((sum, p) => sum + (parseFloat(p.peso) || 0), 0);
 
-                await updateDoc(docRef, {
+                const updateData = {
+                    orderId: newOrderId,
                     pallets: window.currentEditingScrapPallets,
                     totalPeso: nuevoTotalPeso
-                });
+                };
+
+                // Solo actualizar campos de remito si cambiaron en la sesión
+                if (window.currentScrapRemitoPhotoBlob || !window.currentScrapRemitoPhotoUrl) {
+                    updateData.remitoPhotoUrl = remitoPhotoUrl;
+                    updateData.remitoPhotoPath = remitoPhotoPath;
+                }
+
+                await updateDoc(docRef, updateData);
 
                 window.showStatus("✅ Orden de scrap modificada correctamente.");
                 window.closeEditScrapModal();

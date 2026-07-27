@@ -263,6 +263,16 @@
                 <!-- FORMULARIO -->
                 <div
                     class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 relative">
+                    
+                    <!-- Toggle de Ingreso Automático -->
+                    <div class="absolute top-6 right-6 flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Ingreso Auto</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggle-auto-entry" class="sr-only peer" onchange="localStorage.setItem('auto_entry_enabled', this.checked)">
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
                     <h3 class="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                         <span class="text-indigo-500">🔍</span> Identificar Material
                     </h3>
@@ -667,6 +677,10 @@
                         <div class="mt-4">
                             <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">O Seleccionar Zona de Piso</label>
                             <div class="grid grid-cols-2 gap-2">
+                                <button type="button" id="btn-floor-preparacion-scrap" onclick="selectFloorZone('PREPARACION_SCRAP')"
+                                    class="col-span-2 p-2.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition flex items-center justify-center gap-2 text-sm font-bold shadow-sm">
+                                    ♻️ Preparación Scrap
+                                </button>
                                 <button type="button" id="btn-floor-escritorio" onclick="selectFloorZone('ESCRITORIO')"
                                     class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-sm font-bold">
                                     🏢 Escritorio
@@ -2292,7 +2306,7 @@
                 };
 
                 // ─── BUSCAR POR SITIO: mostrar qué materiales se guardaron ahí ───────
-                window.searchSiteContents = function () {
+                window.searchSiteContents = async function () {
                     const input = document.getElementById('site-content-search-input');
                     if (!input) return;
                     const queryText = input.value.trim();
@@ -2306,14 +2320,25 @@
                         return;
                     }
 
+                    Swal.fire({
+                        title: 'Buscando contenido del sitio...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
                     const q = queryText.toLowerCase();
                     const results = [];
                     let totalQty = 0;
                     const contracts = new Set();
 
-                    // 1. Buscar en activeItems (ítems en recepción en curso)
-                    if (typeof activeItems !== 'undefined' && Array.isArray(activeItems)) {
-                        activeItems.forEach(item => {
+                    try {
+                        // 1. Buscar en Firestore (colección 'activos') de forma directa todos los items almacenados
+                        const activosRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+                        const snap = await getDocs(query(activosRef, where('status', '==', 'ALMACENADO')));
+                        const almacenados = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                        // Procesar y filtrar documentos encontrados en activos
+                        almacenados.forEach(item => {
                             const site = (item.sitioOrigen || item.sitioDesmonte || '').toLowerCase();
                             if (site.includes(q)) {
                                 const qty = parseInt(item.cantidad || 0);
@@ -2325,101 +2350,160 @@
                                     qty: qty,
                                     estado: item.estado || 'Sin estado',
                                     contract: item.contrato || 'GU',
-                                    status: 'En Recepción',
+                                    status: 'Almacenado',
                                     date: item.fecha ? (item.fecha.toDate ? item.fecha.toDate() : new Date(item.fecha.seconds * 1000)) : new Date()
                                 });
                             }
                         });
-                    }
 
-                    // 2. Buscar en ingresosLog (historial finalizado)
-                    if (typeof ingresosLog !== 'undefined' && Array.isArray(ingresosLog)) {
-                        ingresosLog.forEach(log => {
-                            const logContract = log.contrato || 'GU';
-                            const logSite = (log.referencia || '').toLowerCase();
-                            const logDate = log.fecha ? (log.fecha.toDate ? log.fecha.toDate() : new Date(log.fecha.seconds * 1000)) : new Date();
-                            
-                            if (log.items && Array.isArray(log.items)) {
-                                log.items.forEach(item => {
-                                    const itemSite = (item.sitioOrigen || logSite || '').toLowerCase();
-                                    if (itemSite.includes(q) || logSite.includes(q)) {
+                        // 2. Buscar localmente en activeItems (para coincidencias parciales por texto que no estén en Firestore)
+                        if (typeof activeItems !== 'undefined' && Array.isArray(activeItems)) {
+                            activeItems.forEach(item => {
+                                if (almacenados.some(x => x.id === item.id)) return;
+
+                                const site = (item.sitioOrigen || item.sitioDesmonte || '').toLowerCase();
+                                if (site.includes(q)) {
+                                    const qty = parseInt(item.cantidad || 0);
+                                    totalQty += qty;
+                                    contracts.add(item.contrato || 'GU');
+                                    results.push({
+                                        name: item.name || 'Sin nombre',
+                                        numParte: item.numParte || '-',
+                                        qty: qty,
+                                        estado: item.estado || 'Sin estado',
+                                        contract: item.contrato || 'GU',
+                                        status: 'En Recepción',
+                                        date: item.fecha ? (item.fecha.toDate ? item.fecha.toDate() : new Date(item.fecha.seconds * 1000)) : new Date()
+                                    });
+                                }
+                            });
+                        }
+
+                        // 3. Buscar en ingresosLog (historial finalizado)
+                        if (typeof ingresosLog !== 'undefined' && Array.isArray(ingresosLog)) {
+                            ingresosLog.forEach(log => {
+                                const logContract = log.contrato || 'GU';
+                                const logSite = (log.referencia || '').toLowerCase();
+                                const logDate = log.fecha ? (log.fecha.toDate ? log.fecha.toDate() : new Date(log.fecha.seconds * 1000)) : new Date();
+                                
+                                if (log.items && Array.isArray(log.items)) {
+                                    log.items.forEach(item => {
+                                        const itemSite = (item.sitioOrigen || logSite || '').toLowerCase();
+                                        if (itemSite.includes(q) || logSite.includes(q)) {
+                                            const qty = parseInt(item.cantidad || 0);
+                                            totalQty += qty;
+                                            contracts.add(item.contrato || logContract);
+                                            results.push({
+                                                name: item.name || 'Sin nombre',
+                                                numParte: item.numParte || '-',
+                                                qty: qty,
+                                                estado: item.estado || 'Sin estado',
+                                                contract: item.contrato || logContract,
+                                                status: 'Finalizado',
+                                                date: logDate
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                        // 3.5 Buscar en Firestore (colección 'ordenes_scrap') para incluir ítems asociados egresados como scrap del sitio
+                        try {
+                            const scrapRef = collection(db, 'artifacts', appId, 'public', 'data', 'ordenes_scrap');
+                            const scrapSnap = await getDocs(scrapRef);
+                            scrapSnap.docs.forEach(docSnap => {
+                                const scrapData = docSnap.data();
+                                const scrapDate = scrapData.createdAt ? (scrapData.createdAt.toDate ? scrapData.createdAt.toDate() : new Date(scrapData.createdAt.seconds * 1000)) : new Date();
+                                const associated = scrapData.associatedItems || [];
+                                associated.forEach(item => {
+                                    const site = (item.sitioOrigen || '').toLowerCase();
+                                    if (site.includes(q)) {
                                         const qty = parseInt(item.cantidad || 0);
                                         totalQty += qty;
-                                        contracts.add(item.contrato || logContract);
+                                        contracts.add(item.contrato || 'GU');
                                         results.push({
                                             name: item.name || 'Sin nombre',
                                             numParte: item.numParte || '-',
                                             qty: qty,
-                                            estado: item.estado || 'Sin estado',
-                                            contract: item.contrato || logContract,
-                                            status: 'Finalizado',
-                                            date: logDate
+                                            estado: 'Scrap',
+                                            contract: item.contrato || 'GU',
+                                            status: 'Egresado Scrap',
+                                            date: scrapDate
                                         });
                                     }
                                 });
+                            });
+                        } catch (scrapErr) {
+                            console.warn("Error leyendo ordenes_scrap en consulta de sitio:", scrapErr);
+                        }
+
+                        // 4. Agrupar por material + contrato para consolidar
+                        const grouped = new Map();
+                        results.forEach(r => {
+                            const key = `${r.name.toUpperCase()}_${r.numParte}_${r.contract}`;
+                            if (!grouped.has(key)) {
+                                grouped.set(key, {
+                                    name: r.name,
+                                    numParte: r.numParte,
+                                    qty: r.qty,
+                                    estado: r.estado,
+                                    contract: r.contract,
+                                    dates: [r.date],
+                                    status: r.status
+                                });
+                            } else {
+                                const existing = grouped.get(key);
+                                existing.qty += r.qty;
+                                existing.dates.push(r.date);
+                                if (r.status !== 'Finalizado') existing.status = r.status;
                             }
                         });
-                    }
 
-                    // 3. Agrupar por material + contrato para consolidar
-                    const grouped = new Map();
-                    results.forEach(r => {
-                        const key = `${r.name.toUpperCase()}_${r.numParte}_${r.contract}`;
-                        if (!grouped.has(key)) {
-                            grouped.set(key, {
-                                name: r.name,
-                                numParte: r.numParte,
-                                qty: r.qty,
-                                estado: r.estado,
-                                contract: r.contract,
-                                dates: [r.date],
-                                status: r.status
+                        currentSiteContentsResults = Array.from(grouped.values()).map(g => {
+                            const maxTime = Math.max(...g.dates.map(d => d.getTime()));
+                            return {
+                                name: g.name,
+                                numParte: g.numParte,
+                                qty: g.qty,
+                                estado: g.estado,
+                                contract: g.contract,
+                                status: g.status,
+                                date: new Date(maxTime)
+                            };
+                        }).sort((a, b) => b.date - a.date);
+
+                        Swal.close();
+
+                        if (currentSiteContentsResults.length === 0) {
+                            Swal.fire({
+                                title: 'Sin resultados',
+                                html: `No se encontraron materiales ingresados desde el sitio <b>"${queryText.toUpperCase()}"</b>.`,
+                                icon: 'warning',
+                                confirmButtonColor: '#f59e0b'
                             });
-                        } else {
-                            const existing = grouped.get(key);
-                            existing.qty += r.qty;
-                            existing.dates.push(r.date);
-                            if (r.status === 'En Recepción') existing.status = 'En Recepción';
+                            return;
                         }
-                    });
 
-                    currentSiteContentsResults = Array.from(grouped.values()).map(g => {
-                        const maxTime = Math.max(...g.dates.map(d => d.getTime()));
-                        return {
-                            name: g.name,
-                            numParte: g.numParte,
-                            qty: g.qty,
-                            estado: g.estado,
-                            contract: g.contract,
-                            status: g.status,
-                            date: new Date(maxTime)
-                        };
-                    }).sort((a, b) => b.date - a.date);
+                        // Actualizar cabecera del modal
+                        document.getElementById('site-contents-modal-query-badge').textContent = queryText.toUpperCase();
+                        document.getElementById('site-contents-total-materials').textContent = currentSiteContentsResults.length;
+                        document.getElementById('site-contents-total-qty').textContent = totalQty;
+                        document.getElementById('site-contents-contract-info').textContent = Array.from(contracts).join(' / ') || '—';
 
-                    if (currentSiteContentsResults.length === 0) {
-                        Swal.fire({
-                            title: 'Sin resultados',
-                            html: `No se encontraron materiales ingresados desde el sitio <b>"${queryText.toUpperCase()}"</b>.`,
-                            icon: 'warning',
-                            confirmButtonColor: '#f59e0b'
-                        });
-                        return;
+                        // Limpiar filtro y renderizar
+                        const filterInput = document.getElementById('site-contents-modal-filter-input');
+                        if (filterInput) filterInput.value = '';
+
+                        renderSiteContentsTable(currentSiteContentsResults);
+
+                        // Mostrar modal
+                        document.getElementById('site-contents-fullscreen-modal').classList.remove('hidden');
+
+                    } catch (err) {
+                        console.error("Error al buscar contenido del sitio:", err);
+                        Swal.fire('Error', 'Hubo un problema al buscar el contenido del sitio.', 'error');
                     }
-
-                    // Actualizar cabecera del modal
-                    document.getElementById('site-contents-modal-query-badge').textContent = queryText.toUpperCase();
-                    document.getElementById('site-contents-total-materials').textContent = currentSiteContentsResults.length;
-                    document.getElementById('site-contents-total-qty').textContent = totalQty;
-                    document.getElementById('site-contents-contract-info').textContent = Array.from(contracts).join(' / ') || '—';
-
-                    // Limpiar filtro y renderizar
-                    const filterInput = document.getElementById('site-contents-modal-filter-input');
-                    if (filterInput) filterInput.value = '';
-
-                    renderSiteContentsTable(currentSiteContentsResults);
-
-                    // Mostrar modal
-                    document.getElementById('site-contents-fullscreen-modal').classList.remove('hidden');
                 };
 
                 function renderSiteContentsTable(data) {
@@ -2483,7 +2567,7 @@
                     document.getElementById('site-contents-fullscreen-modal').classList.add('hidden');
                 };
 
-                window.searchMaterialOrigins = function () {
+                window.searchMaterialOrigins = async function () {
                     const input = document.getElementById('material-origin-search-input');
                     if (!input) return;
                     const queryText = input.value.trim();
@@ -2497,121 +2581,200 @@
                         return;
                     }
 
+                    Swal.fire({
+                        title: 'Buscando orígenes...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
                     const q = queryText.toLowerCase();
                     const results = [];
-
-                    // 1. Buscar en activeItems (recepción en curso) y acumular cantidades
                     let totalGU = 0;
                     let totalRAN = 0;
 
-                    if (typeof activeItems !== 'undefined' && Array.isArray(activeItems)) {
-                        activeItems.forEach(item => {
+                    try {
+                        // 1. Buscar en Firestore (colección 'activos') de forma directa todos los items almacenados
+                        const activosRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+                        const snap = await getDocs(query(activosRef, where('status', '==', 'ALMACENADO')));
+                        const almacenados = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                        // Procesar y filtrar documentos encontrados en activos
+                        almacenados.forEach(item => {
                             const name = item.name || '';
                             const numParte = item.numParte || '';
-                            if (name.toLowerCase().includes(q) || numParte.toLowerCase().includes(q)) {
+                            const numSerie = item.numSerie || '';
+                            if (name.toLowerCase().includes(q) || numParte.toLowerCase().includes(q) || numSerie.toLowerCase().includes(q)) {
                                 const qty = parseInt(item.cantidad || 0);
-                                if (item.contrato === 'RAN') {
+                                const contract = item.contrato || 'GU';
+                                if (contract === 'RAN') {
                                     totalRAN += qty;
                                 } else {
                                     totalGU += qty;
                                 }
                                 results.push({
                                     site: item.sitioOrigen || item.sitioDesmonte || 'Desconocido',
-                                    contract: item.contrato || 'GU',
+                                    contract: contract,
                                     qty: qty,
-                                    status: 'En Recepción',
+                                    status: 'Almacenado',
                                     date: item.fecha ? (item.fecha.toDate ? item.fecha.toDate() : new Date(item.fecha.seconds * 1000)) : new Date()
                                 });
                             }
                         });
-                    }
 
-                    // 2. Buscar en ingresosLog (historial finalizado) y acumular cantidades
-                    if (typeof ingresosLog !== 'undefined' && Array.isArray(ingresosLog)) {
-                        ingresosLog.forEach(log => {
-                            const logContract = log.contrato || 'GU';
-                            const logSite = log.referencia || 'Desconocido';
-                            const logDate = log.fecha ? (log.fecha.toDate ? log.fecha.toDate() : new Date(log.fecha.seconds * 1000)) : new Date();
-                            if (log.items && Array.isArray(log.items)) {
-                                log.items.forEach(item => {
+                        // 2. Buscar localmente en activeItems (para coincidencias parciales por texto)
+                        if (typeof activeItems !== 'undefined' && Array.isArray(activeItems)) {
+                            activeItems.forEach(item => {
+                                // Evitar duplicar si ya lo procesamos desde Firestore
+                                if (almacenados.some(x => x.id === item.id)) return;
+
+                                const name = item.name || '';
+                                const numParte = item.numParte || '';
+                                const numSerie = item.numSerie || '';
+                                if (name.toLowerCase().includes(q) || numParte.toLowerCase().includes(q) || numSerie.toLowerCase().includes(q)) {
+                                    const qty = parseInt(item.cantidad || 0);
+                                    const contract = item.contrato || 'GU';
+                                    if (contract === 'RAN') {
+                                        totalRAN += qty;
+                                    } else {
+                                        totalGU += qty;
+                                    }
+                                    results.push({
+                                        site: item.sitioOrigen || item.sitioDesmonte || 'Desconocido',
+                                        contract: contract,
+                                        qty: qty,
+                                        status: 'En Recepción',
+                                        date: item.fecha ? (item.fecha.toDate ? item.fecha.toDate() : new Date(item.fecha.seconds * 1000)) : new Date()
+                                    });
+                                }
+                            });
+                        }
+
+                        // 3. Buscar en ingresosLog (historial finalizado) y acumular cantidades
+                        if (typeof ingresosLog !== 'undefined' && Array.isArray(ingresosLog)) {
+                            ingresosLog.forEach(log => {
+                                const logContract = log.contrato || 'GU';
+                                const logSite = log.referencia || 'Desconocido';
+                                const logDate = log.fecha ? (log.fecha.toDate ? log.fecha.toDate() : new Date(log.fecha.seconds * 1000)) : new Date();
+                                if (log.items && Array.isArray(log.items)) {
+                                    log.items.forEach(item => {
+                                        const name = item.name || '';
+                                        const numParte = item.numParte || '';
+                                        if (name.toLowerCase().includes(q) || numParte.toLowerCase().includes(q)) {
+                                            const qty = parseInt(item.cantidad || 0);
+                                            if ((item.contrato || logContract) === 'RAN') {
+                                                totalRAN += qty;
+                                            } else {
+                                                totalGU += qty;
+                                            }
+                                            results.push({
+                                                site: item.sitioOrigen || logSite,
+                                                contract: item.contrato || logContract,
+                                                qty: qty,
+                                                status: 'Finalizado',
+                                                date: logDate
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
+                        // 3.5 Buscar en Firestore (colección 'ordenes_scrap') para incluir ítems asociados egresados como scrap
+                        try {
+                            const scrapRef = collection(db, 'artifacts', appId, 'public', 'data', 'ordenes_scrap');
+                            const scrapSnap = await getDocs(scrapRef);
+                            scrapSnap.docs.forEach(docSnap => {
+                                const scrapData = docSnap.data();
+                                const scrapDate = scrapData.createdAt ? (scrapData.createdAt.toDate ? scrapData.createdAt.toDate() : new Date(scrapData.createdAt.seconds * 1000)) : new Date();
+                                const associated = scrapData.associatedItems || [];
+                                associated.forEach(item => {
                                     const name = item.name || '';
                                     const numParte = item.numParte || '';
                                     if (name.toLowerCase().includes(q) || numParte.toLowerCase().includes(q)) {
                                         const qty = parseInt(item.cantidad || 0);
-                                        if ((item.contrato || logContract) === 'RAN') {
+                                        const contract = item.contrato || 'GU';
+                                        if (contract === 'RAN') {
                                             totalRAN += qty;
                                         } else {
                                             totalGU += qty;
                                         }
                                         results.push({
-                                            site: item.sitioOrigen || logSite,
-                                            contract: item.contrato || logContract,
+                                            site: item.sitioOrigen || 'Desconocido',
+                                            contract: contract,
                                             qty: qty,
-                                            status: 'Finalizado',
-                                            date: logDate
+                                            status: 'Egresado Scrap',
+                                            date: scrapDate
                                         });
                                     }
                                 });
-                            }
-                        });
-                    }
-
-                    // 3. Agrupar por sitio y contrato para consolidar la tabla
-                    const grouped = new Map();
-                    results.forEach(r => {
-                        const key = `${r.site.toUpperCase()}_${r.contract}`;
-                        if (!grouped.has(key)) {
-                            grouped.set(key, {
-                                site: r.site,
-                                contract: r.contract,
-                                qty: r.qty,
-                                dates: [r.date],
-                                status: r.status
                             });
-                        } else {
-                            const existing = grouped.get(key);
-                            existing.qty += r.qty;
-                            existing.dates.push(r.date);
-                            if (r.status === 'En Recepción') {
-                                existing.status = 'En Recepción';
-                            }
+                        } catch (scrapErr) {
+                            console.warn("Error leyendo ordenes_scrap en consulta de material:", scrapErr);
                         }
-                    });
 
-                    currentOriginsResults = Array.from(grouped.values()).map(g => {
-                        const maxTime = Math.max(...g.dates.map(d => d.getTime()));
-                        return {
-                            site: g.site,
-                            contract: g.contract,
-                            qty: g.qty,
-                            status: g.status,
-                            date: new Date(maxTime)
-                        };
-                    }).sort((a, b) => b.date - a.date);
-
-                    if (currentOriginsResults.length === 0) {
-                        Swal.fire({
-                            title: 'Sin orígenes',
-                            html: `No se encontraron registros de ingreso para el material <b>"${queryText.toUpperCase()}"</b>.`,
-                            icon: 'warning',
-                            confirmButtonColor: '#4f46e5'
+                        // 4. Agrupar por sitio y contrato para consolidar la tabla
+                        const grouped = new Map();
+                        results.forEach(r => {
+                            const key = `${String(r.site).toUpperCase()}_${r.contract}`;
+                            if (!grouped.has(key)) {
+                                grouped.set(key, {
+                                    site: r.site,
+                                    contract: r.contract,
+                                    qty: r.qty,
+                                    dates: [r.date],
+                                    status: r.status
+                                });
+                            } else {
+                                const existing = grouped.get(key);
+                                existing.qty += r.qty;
+                                existing.dates.push(r.date);
+                                if (r.status !== 'Finalizado') {
+                                    existing.status = r.status;
+                                }
+                            }
                         });
-                        return;
+
+                        currentOriginsResults = Array.from(grouped.values()).map(g => {
+                            const maxTime = Math.max(...g.dates.map(d => d.getTime()));
+                            return {
+                                site: g.site,
+                                contract: g.contract,
+                                qty: g.qty,
+                                status: g.status,
+                                date: new Date(maxTime)
+                            };
+                        }).sort((a, b) => b.date - a.date);
+
+                        Swal.close();
+
+                        if (currentOriginsResults.length === 0) {
+                            Swal.fire({
+                                title: 'Sin orígenes',
+                                html: `No se encontraron registros de ingreso para el material <b>"${queryText.toUpperCase()}"</b>.`,
+                                icon: 'warning',
+                                confirmButtonColor: '#4f46e5'
+                            });
+                            return;
+                        }
+
+                        // Actualizar cabecera del modal
+                        document.getElementById('origins-modal-query-badge').textContent = queryText.toUpperCase();
+                        document.getElementById('origins-modal-total-gu').textContent = totalGU;
+                        document.getElementById('origins-modal-total-ran').textContent = totalRAN;
+
+                        // Limpiar filtro y renderizar
+                        const filterInput = document.getElementById('origins-modal-filter-input');
+                        if (filterInput) filterInput.value = '';
+
+                        renderOriginsTable(currentOriginsResults);
+
+                        // Mostrar modal
+                        document.getElementById('origins-fullscreen-modal').classList.remove('hidden');
+
+                    } catch (err) {
+                        console.error("Error al buscar orígenes:", err);
+                        Swal.fire('Error', 'Hubo un problema al realizar la búsqueda de orígenes.', 'error');
                     }
-
-                    // Actualizar cabecera del modal
-                    document.getElementById('origins-modal-query-badge').textContent = queryText.toUpperCase();
-                    document.getElementById('origins-modal-total-gu').textContent = totalGU;
-                    document.getElementById('origins-modal-total-ran').textContent = totalRAN;
-
-                    // Limpiar filtro y renderizar
-                    const filterInput = document.getElementById('origins-modal-filter-input');
-                    if (filterInput) filterInput.value = '';
-
-                    renderOriginsTable(currentOriginsResults);
-
-                    // Mostrar modal
-                    document.getElementById('origins-fullscreen-modal').classList.remove('hidden');
                 };
 
                 function renderOriginsTable(data) {
@@ -2637,7 +2800,11 @@
                         
                         const statusBadge = r.status === 'En Recepción'
                             ? `<span class="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-amber-200/50 dark:border-amber-800/30">⏳ Recepción</span>`
-                            : `<span class="bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-200 dark:border-slate-800/50">✅ Finalizado</span>`;
+                            : r.status === 'Egresado Scrap'
+                                ? `<span class="bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-rose-200/50 dark:border-rose-800/30">♻️ Scrap Egresado</span>`
+                                : r.status === 'Almacenado'
+                                    ? `<span class="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-200/50 dark:border-emerald-800/30">📦 Almacenado</span>`
+                                    : `<span class="bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-slate-200 dark:border-slate-800/50">✅ Finalizado</span>`;
                             
                         const tr = document.createElement('tr');
                         tr.className = "bg-white dark:bg-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors border-b border-slate-100 dark:border-slate-800";
@@ -3135,6 +3302,26 @@ window.selectRanScrapCatalog = function (catalogo, parte) {
                     try {
                         const batch = writeBatch(db);
 
+                        // Si es una sesión de Scrap, buscar y asociar todos los ítems en PREPARACION_SCRAP que correspondan al contrato
+                        let prepScrapItems = [];
+                        if (window.isScrapSession) {
+                            const activosRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+                            const prepSnap = await getDocs(query(activosRef, where('ubicacion', '==', 'PREPARACION_SCRAP')));
+                            const allPrep = prepSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                            
+                            if (currentContract === 'RAN') {
+                                prepScrapItems = allPrep.filter(i => i.contrato === 'RAN');
+                            } else {
+                                prepScrapItems = allPrep.filter(i => i.contrato !== 'RAN');
+                            }
+
+                            // Marcar movimientos de egreso de scrap y eliminar físicamente del inventario activo
+                            prepScrapItems.forEach(item => {
+                                registrarMovimiento('SALIDA_SCRAP', `${item.name} (Egresado desde PREPARACION_SCRAP en reporte ${currentSite})`, item.cantidad || 1, localStorage.getItem('operario_gram') || 'DESCONOCIDO', 'SCRAP_SALIDA');
+                                batch.delete(doc(getCollectionRef(), item.id));
+                            });
+                        }
+
                         sessionItems.forEach(item => {
                             const itemRef = doc(getCollectionRef(), item.id);
                             batch.update(itemRef, { status: 'ALMACENADO' });
@@ -3145,15 +3332,23 @@ window.selectRanScrapCatalog = function (catalogo, parte) {
                         const snapLog = await getDocs(qLog);
                         const matchedLog = snapLog.docs.find(d => (d.data().contrato || 'GU') === currentContract);
 
+                        // Unificar ítems de la sesión con los ítems asociados de PREPARACION_SCRAP en el remito/reporte final
+                        const loggedItems = [
+                            ...sessionItems.map(i => ({
+                                id: i.id, name: i.name, numParte: i.numParte || '', numSerie: i.numSerie || '', cantidad: i.cantidad || 1, estado: i.estado || '', ubicacion: i.ubicacion || 'RECEPCION', sitioOrigen: i.sitioOrigen || '', contrato: i.contrato || 'GU'
+                            })),
+                            ...prepScrapItems.map(i => ({
+                                id: i.id, name: i.name, numParte: i.numParte || '', numSerie: i.numSerie || '', cantidad: i.cantidad || 1, estado: i.estado || 'Scrap', ubicacion: 'PREPARACION_SCRAP', sitioOrigen: i.sitioOrigen || '', contrato: i.contrato || 'GU'
+                            }))
+                        ];
+
                         const logData = {
                             referencia: currentSite,
                             fecha: serverTimestamp(),
-                            cantidadItems: sessionItems.length,
+                            cantidadItems: loggedItems.length,
                             contrato: currentContract,
                             operario: localStorage.getItem('operario_gram') || 'DESCONOCIDO',
-                            items: sessionItems.map(i => ({
-                                id: i.id, name: i.name, numParte: i.numParte || '', numSerie: i.numSerie || '', cantidad: i.cantidad || 1, estado: i.estado || '', ubicacion: i.ubicacion || 'RECEPCION', sitioOrigen: i.sitioOrigen || '', contrato: i.contrato || 'GU'
-                            }))
+                            items: loggedItems
                         };
 
                         if (matchedLog) {
@@ -3179,16 +3374,168 @@ window.selectRanScrapCatalog = function (catalogo, parte) {
                 // ─── SEARCH & FORM ────────────────────────────────────────────────────────
                 function debounce(fn, ms = 300) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
+                function parseRawBarcode(rawStr) {
+                    let cleanPart = '';
+                    let cleanSerial = '';
+
+                    // 1. Prefijo 1P estándar para número de parte
+                    const match1P = rawStr.match(/1P([A-Z0-9\-\/]+)/i);
+                    if (match1P) {
+                        let partCandidate = match1P[1];
+                        // Cortar si encontramos otro prefijo de campo (por ejemplo, P para revisión o S para serial)
+                        const cutMatch = partCandidate.match(/^([A-Z0-9\-\/]+?)(?=P[A-Z0-9]|S[A-Z0-9]|$)/i);
+                        if (cutMatch) {
+                            cleanPart = cutMatch[1];
+                        } else {
+                            cleanPart = partCandidate;
+                        }
+                    }
+
+                    // 2. Si no hay 1P, buscar patrones conocidos de Ericsson (KRC, KRY, RDH, etc.) o catálogos SAP (4000...)
+                    if (!cleanPart) {
+                        const match4000 = rawStr.match(/4000\d{6,}/);
+                        if (match4000) {
+                            cleanPart = match4000[0];
+                        } else {
+                            const matchEric = rawStr.match(/[A-Z]{3}\s?\d{3,}(?:[\/\-]\d+)?/i);
+                            if (matchEric) {
+                                cleanPart = matchEric[0];
+                            }
+                        }
+                    }
+
+                    // 3. Extraer número de serie si hay un prefijo S o 21S
+                    const match21S = rawStr.match(/21S([A-Z0-9]+)/i);
+                    if (match21S) {
+                        cleanSerial = match21S[1];
+                    } else {
+                        // Buscar la letra S seguida de caracteres alfanuméricos (típicamente de longitud 8-20 para números de serie)
+                        const matchS = rawStr.match(/S([A-Z0-9]{8,20})/i);
+                        if (matchS) {
+                            cleanSerial = matchS[1];
+                        }
+                    }
+
+                    // Limpiar caracteres extraños
+                    if (cleanPart) cleanPart = cleanPart.replace(/[^A-Z0-9\-\/]/ig, '');
+                    if (cleanSerial) cleanSerial = cleanSerial.replace(/[^A-Z0-9]/ig, '');
+
+                    return { part: cleanPart, serial: cleanSerial };
+                }
+
                 function setupSearch() {
                     const input = document.getElementById('search-master');
                     const results = document.getElementById('search-results');
 
+                    // Inicializar el estado del checkbox de ingreso automático desde localStorage
+                    const toggleAuto = document.getElementById('toggle-auto-entry');
+                    if (toggleAuto) {
+                        const savedPref = localStorage.getItem('auto_entry_enabled');
+                        toggleAuto.checked = savedPref === null ? true : (savedPref === 'true');
+                    }
+
+                    // Procesamiento y auto-ingreso inmediato al presionar Enter o Tab (enviado por lectoras)
+                    input.addEventListener('keydown', async (e) => {
+                        if (e.key === 'Enter' || e.key === 'Tab') {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            let q = input.value.trim();
+                            if (!q) return;
+
+                            let cleanPartText = q;
+                            let cleanSerialText = '';
+
+                            // Procesar si es escaneo crudo
+                            if (q.includes('´=') || q.includes('1P') || q.includes('21S') || q.length > 20) {
+                                const parsed = parseRawBarcode(q);
+                                if (parsed.part) {
+                                    input.value = parsed.part;
+                                    cleanPartText = parsed.part;
+                                }
+                                if (parsed.serial) {
+                                    const serialInput = document.getElementById('item-serial');
+                                    if (serialInput) {
+                                        serialInput.value = parsed.serial.toUpperCase();
+                                        cleanSerialText = parsed.serial.toUpperCase();
+                                    }
+                                }
+                            }
+
+                            // Buscar coincidencia exacta o mejor coincidencia en el maestro
+                            const normQ = cleanPartText.replace(/[^a-z0-9]/ig, '').toLowerCase();
+                            const hits = maestroData.filter(x => {
+                                const normCat = String(x.catalogo || '').replace(/[^a-z0-9]/ig, '').toLowerCase();
+                                const normCod = String(x.codigo_parte || '').replace(/[^a-z0-9]/ig, '').toLowerCase();
+                                const normDesc = String(x.descripcion || '').toLowerCase();
+                                
+                                return (normCat && (normCat.includes(normQ) || normQ.includes(normCat))) ||
+                                       (normCod && (normCod.includes(normQ) || normQ.includes(normCod))) ||
+                                       normDesc.includes(cleanPartText.toLowerCase());
+                            });
+
+                            if (hits.length > 0) {
+                                const bestItem = hits[0];
+                                const keyCat = String(bestItem.catalogo || '').trim().toUpperCase();
+                                const keyParte = String(bestItem.codigo_parte || '').trim().toUpperCase();
+                                const defaultEstado = (estadosData && (estadosData[keyCat] || estadosData[keyParte])) || 'Reuso';
+
+                                // Rellenar formulario de inmediato
+                                document.getElementById('item-name').value = bestItem.catalogo;
+                                document.getElementById('item-part').value = bestItem.codigo_parte;
+                                document.getElementById('item-status').value = defaultEstado;
+                                updateFormPhotoPreview();
+
+                                // Limpiar e ocultar resultados
+                                input.value = '';
+                                results.classList.add('hidden');
+                                results.innerHTML = '';
+
+                                // Ejecutar guardado directo solo si el ingreso automático está habilitado
+                                const isAutoEntryEnabled = toggleAuto ? toggleAuto.checked : true;
+                                if (isAutoEntryEnabled) {
+                                    await window.saveItem();
+                                }
+                            } else {
+                                showStatus('No se encontró coincidencia en el catálogo maestro para: ' + cleanPartText, true);
+                            }
+                        }
+                    });
+
                     input.addEventListener('keyup', debounce(() => {
-                        const q = input.value.toLowerCase().trim();
+                        let q = input.value.trim();
                         results.innerHTML = '';
+                        if (!q) { results.classList.add('hidden'); return; }
+
+                        // Si es un escaneo con caracteres de control de lector o longitud típica de etiqueta completa
+                        if (q.includes('´=') || q.includes('1P') || q.includes('21S') || q.length > 20) {
+                            const parsed = parseRawBarcode(q);
+                            if (parsed.part) {
+                                input.value = parsed.part;
+                                q = parsed.part;
+                            }
+                            if (parsed.serial) {
+                                const serialInput = document.getElementById('item-serial');
+                                if (serialInput) {
+                                    serialInput.value = parsed.serial.toUpperCase();
+                                }
+                            }
+                        }
+
                         if (q.length < 2) { results.classList.add('hidden'); return; }
 
-                        const hits = maestroData.filter(x => (x.catalogo + ' ' + x.codigo_parte + ' ' + x.descripcion).toLowerCase().includes(q)).slice(0, 10);
+                        const normQ = q.replace(/[^a-z0-9]/ig, '').toLowerCase();
+
+                        // Buscar coincidencia en catálogo maestro con soporte para diferencias de guiones y barras
+                        const hits = maestroData.filter(x => {
+                            const normCat = String(x.catalogo || '').replace(/[^a-z0-9]/ig, '').toLowerCase();
+                            const normCod = String(x.codigo_parte || '').replace(/[^a-z0-9]/ig, '').toLowerCase();
+                            const normDesc = String(x.descripcion || '').toLowerCase();
+                            
+                            return (normCat && (normCat.includes(normQ) || normQ.includes(normCat))) ||
+                                   (normCod && (normCod.includes(normQ) || normQ.includes(normCod))) ||
+                                   normDesc.includes(q.toLowerCase());
+                        }).slice(0, 10);
 
                         if (!hits.length) {
                             results.innerHTML = '<div class="p-3 text-center text-gray-400 italic text-sm">Sin resultados</div>';

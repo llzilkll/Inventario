@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preparación de Pedido — GRAM</title>
+    <title>PreparaciÃ³n de Pedido â€” GRAM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
@@ -45,9 +45,9 @@
 
 <body class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 p-4 md:p-6">
 
-    <!-- CABECERA IMPRESIÓN -->
+    <!-- CABECERA IMPRESIÃ“N -->
     <div id="print-header" class="mb-4">
-        <h1 style="font-size:16pt;font-weight:bold;margin-bottom:2px;">📋 Lista de Preparación de Pedido</h1>
+        <h1 style="font-size:16pt;font-weight:bold;margin-bottom:2px;">ðŸ“‹ Lista de PreparaciÃ³n de Pedido</h1>
         <p id="print-meta" style="font-size:9pt;color:#555;"></p>
         <hr style="margin:6px 0;">
     </div>
@@ -57,20 +57,20 @@
         <!-- HEADER -->
         <header class="no-print sticky top-0 z-40 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between mb-6 pb-5 border-b border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 flex items-center justify-center text-xl">📋</div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-700 flex items-center justify-center text-xl">ðŸ“‹</div>
                 <div>
                     <div class="flex items-center gap-3">
                         <div class="relative no-print">
                             <select id="order-selector" onchange="cambiarOrden(this.value)"
                                 class="appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-xl font-extrabold py-1 pl-3 pr-8 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm">
                             </select>
-                            <span class="absolute right-3 top-2.5 text-slate-400 pointer-events-none text-sm">▼</span>
+                            <span class="absolute right-3 top-2.5 text-slate-400 pointer-events-none text-sm">â–¼</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-1 mt-1.5 no-print">
-                        <button onclick="crearNuevaOrden()" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-1 rounded transition border border-indigo-100 dark:border-indigo-800 shadow-sm">➕ Nueva</button>
-                        <button onclick="renombrarOrden()" class="text-[11px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition border border-slate-200 dark:border-slate-600 shadow-sm">✏️ Renombrar</button>
-                        <button onclick="eliminarOrden()" class="text-[11px] bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-2 py-1 rounded transition border border-red-100 dark:border-red-900 shadow-sm">🗑️ Borrar Lista</button>
+                        <button onclick="crearNuevaOrden()" class="text-[11px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-1 rounded transition border border-indigo-100 dark:border-indigo-800 shadow-sm">âž• Nueva</button>
+                        <button onclick="renombrarOrden()" class="text-[11px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold px-2 py-1 rounded transition border border-slate-200 dark:border-slate-600 shadow-sm">âœï¸ Renombrar</button>
+                        <button onclick="eliminarOrden()" class="text-[11px] bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-2 py-1 rounded transition border border-red-100 dark:border-red-900 shadow-sm">ðŸ—‘ï¸ Borrar Lista</button>
                     </div>
                 </div>
             </div>
@@ -79,43 +79,47 @@
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Conectando...
                 </div>
                 <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-yellow-400 hover:bg-slate-50 transition shadow-sm">
-                    <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+                    <span class="dark:hidden">ðŸŒ™</span><span class="hidden dark:inline">â˜€ï¸</span>
                 </button>
                 <a href="index.html" class="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold py-2 px-4 rounded-xl transition shadow-sm text-sm">
-                    ⬅️ Volver
+                    â¬…ï¸ Volver
                 </a>
             </div>
         </header>
 
         <!-- BUSCADOR -->
         <div id="search-panel" class="no-print bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 mb-6">
-            <h2 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">🔍 Buscar Material en Maestro</h2>
+            <h2 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">ðŸ” Buscar Material en Maestro</h2>
             <div class="relative">
                 <input type="text" id="prep-search-input" autocomplete="off"
-                    placeholder="Catálogo, N° de parte o descripción..."
+                    placeholder="CatÃ¡logo, NÂ° de parte o descripciÃ³n..."
                     class="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white text-sm transition shadow-inner"
                     onkeyup="buscarEnMaestro()" onfocus="buscarEnMaestro()">
-                <span class="absolute left-3 top-3.5 text-slate-400 pointer-events-none">🔍</span>
+                <span class="absolute left-3 top-3.5 text-slate-400 pointer-events-none">ðŸ”</span>
                 <div id="search-results-prep"
                     class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl max-h-64 overflow-y-auto shadow-2xl hidden">
                 </div>
             </div>
-            <p id="maestro-status" class="text-xs text-slate-400 mt-2">⏳ Cargando maestro de ítems...</p>
+            <p id="maestro-status" class="text-xs text-slate-400 mt-2">â³ Cargando maestro de Ã­tems...</p>
         </div>
 
-        <!-- LISTA DE PREPARACIÓN -->
+        <!-- LISTA DE PREPARACIÃ“N -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
 
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700">
                 <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    📦 Lista de Picking
-                    <span id="item-count-badge" class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-2 py-0.5 rounded-full">0 ítems</span>
+                    ðŸ“¦ Lista de Picking
+                    <span id="item-count-badge" class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-2 py-0.5 rounded-full">0 Ã­tems</span>
                 </h2>
                 <div class="no-print flex items-center gap-2 flex-wrap">
                     <button type="button" id="btn-toggle-view" onclick="toggleViewMode()"
                         class="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold py-2 px-3 rounded-xl transition text-sm border border-indigo-200 dark:border-indigo-800 shadow-sm"
-                        title="Cambia la vista entre agrupar por producto o por estantería">
+                        title="Cambia la vista entre agrupar por producto, por estantería o disponibilidad">
                         👁️ Ver por Ubicación
+                    </button>
+                    <button type="button" onclick="openExcelImportModal()"
+                        class="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold py-2 px-3 rounded-xl transition text-sm border border-emerald-200 dark:border-emerald-800">
+                        📥 Importar Excel
                     </button>
                     <button type="button" onclick="imprimirLista()"
                         class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2 px-3 rounded-xl transition text-sm shadow-sm">
@@ -123,7 +127,7 @@
                     </button>
                     <button type="button" onclick="exportarExcel()"
                         class="flex items-center gap-1.5 bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-bold py-2 px-3 rounded-xl transition text-sm border border-teal-200 dark:border-teal-800">
-                        📥 Excel
+                        📦 Excel
                     </button>
                     <button type="button" onclick="limpiarLista()"
                         class="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold py-2 px-3 rounded-xl transition text-sm border border-red-200 dark:border-red-800">
@@ -131,43 +135,11 @@
                     </button>
                 </div>
             </div>
-
-            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                            <th class="px-4 py-3">#</th>
-                            <th class="px-4 py-3">Catálogo</th>
-                            <th class="px-4 py-3">Descripción</th>
-                            <th class="px-4 py-3">N° Parte</th>
-                            <th class="px-4 py-3">📍 Ubicaciones</th>
-                            <th class="px-4 py-3 text-center">Cant.</th>
-                            <th class="px-4 py-3 text-center no-print">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="prep-list-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
-                        <tr>
-                            <td colspan="7" class="text-center py-14 text-slate-400 italic">
-                                <div class="flex flex-col items-center gap-2">
-                                    <span class="text-4xl">🔍</span>
-                                    <span class="text-sm">Buscá un material arriba para comenzar</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4 flex justify-end">
-                <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl px-5 py-3 text-right">
-                    <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider">Total unidades</p>
-                    <p id="total-qty" class="text-3xl font-black text-indigo-700 dark:text-indigo-300">0</p>
-                </div>
-            </div>
         </div>
+
     </div>
 
-    <!-- ═══ MODAL: SELECCIONAR UBICACIÓN ════════════════════════════════════ -->
+    <!-- â•â•â• MODAL: SELECCIONAR UBICACIÃ“N â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div id="ubicacion-modal" class="no-print fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center hidden z-[80]">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh] overflow-hidden">
 
@@ -180,7 +152,7 @@
                 <button type="button" onclick="cerrarModal()" class="text-indigo-200 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
 
-            <!-- Info del ítem -->
+            <!-- Info del Ã­tem -->
             <div class="px-5 py-3 bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800 shrink-0">
                 <p id="modal-desc" class="text-sm text-indigo-800 dark:text-indigo-200"></p>
                 <p id="modal-parte" class="text-xs font-mono text-indigo-500 mt-0.5"></p>
@@ -189,7 +161,7 @@
             <!-- Ubicaciones desde Firebase -->
             <div class="flex-1 overflow-y-auto p-5 space-y-3">
 
-                <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">📍 Stock en inventario</p>
+                <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">ðŸ“ Stock en inventario</p>
 
                 <div id="ubicaciones-loading" class="flex items-center gap-2 text-sm text-slate-400 py-4">
                     <svg class="animate-spin w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24">
@@ -202,13 +174,13 @@
                 <div id="ubicaciones-list" class="space-y-2 hidden"></div>
 
                 <div id="ubicaciones-empty" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-200">
-                    ⚠️ No se encontró stock de este material en el inventario.
-                    <p class="text-xs mt-1 text-amber-600 dark:text-amber-400">Podés igual agregarlo manualmente con ubicación libre.</p>
+                    âš ï¸ No se encontrÃ³ stock de este material en el inventario.
+                    <p class="text-xs mt-1 text-amber-600 dark:text-amber-400">PodÃ©s igual agregarlo manualmente con ubicaciÃ³n libre.</p>
                 </div>
 
                 <!-- Separador: manual -->
                 <div class="pt-3 border-t border-slate-200 dark:border-slate-700 mt-2">
-                    <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">✏️ O ingresá la ubicación manualmente</p>
+                    <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">âœï¸ O ingresÃ¡ la ubicaciÃ³n manualmente</p>
                     <div class="flex gap-2">
                         <input type="text" id="modal-ubicacion-manual" placeholder="Ej: E3N2P5, TALLER..."
                             maxlength="30"
@@ -217,7 +189,7 @@
                             class="w-20 p-2.5 border border-slate-300 dark:border-slate-600 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white font-bold text-center text-sm">
                         <button type="button" onclick="agregarManual()"
                             class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-white font-bold px-4 rounded-xl transition text-sm shadow-sm">
-                            ➕
+                            âž•
                         </button>
                     </div>
                 </div>
@@ -232,11 +204,11 @@
         </div>
     </div>
 
-    <!-- ═══ MODAL EDITAR ════════════════════════════════════════════════════ -->
+    <!-- â•â•â• MODAL EDITAR â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div id="edit-modal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-[80]">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
             <div class="bg-amber-500 px-5 py-4 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-white">✏️ Editar Ítem</h3>
+                <h3 class="text-lg font-bold text-white">âœï¸ Editar Ãtem</h3>
                 <button type="button" onclick="cerrarEditModal()" class="text-amber-100 hover:text-white text-2xl font-bold leading-none">&times;</button>
             </div>
             <div class="p-5 space-y-4 bg-slate-50 dark:bg-slate-900">
@@ -260,7 +232,86 @@
         </div>
     </div>
 
-    <!-- ═══ FIREBASE + LÓGICA ═══════════════════════════════════════════════ -->
+    <!-- 📥 MODAL: IMPORTAR EXCEL -->
+    <div id="excel-import-modal" class="no-print fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center hidden z-[80]">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="bg-emerald-600 px-5 py-4 flex justify-between items-center shrink-0">
+                <div>
+                    <p class="text-emerald-200 text-xs font-bold uppercase tracking-wider">Cargar pedido desde planilla</p>
+                    <h3 class="text-lg font-black text-white flex items-center gap-2">
+                        📥 Importar Excel de Picking
+                    </h3>
+                </div>
+                <button type="button" onclick="cerrarExcelImportModal()" class="text-emerald-200 hover:text-white text-2xl font-bold leading-none">&times;</button>
+            </div>
+            <div class="px-5 py-4 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="text-xs text-emerald-800 dark:text-emerald-300">
+                    <p class="font-bold">Instrucciones:</p>
+                    <p>Suba un archivo <strong>.xlsx</strong> o <strong>.xls</strong>. Debe contener al menos una columna de <strong>Catálogo</strong> y otra de <strong>Cantidad</strong>.</p>
+                </div>
+                <div>
+                    <label class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl cursor-pointer transition shadow-md text-sm inline-block whitespace-nowrap">
+                        📁 Seleccionar Planilla
+                        <input type="file" id="excel-file-input" class="hidden" accept=".xlsx, .xls, .csv" onchange="window.handleExcelImport(event)">
+                    </label>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5">
+                <div id="excel-summary-container" class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5 hidden">
+                    <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
+                        <p class="text-xs font-semibold text-slate-500 uppercase">Items en Excel</p>
+                        <p id="summary-total-items" class="text-xl font-black text-slate-800 dark:text-white mt-0.5">0</p>
+                    </div>
+                    <div class="bg-emerald-50 dark:bg-emerald-950/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-center">
+                        <p class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Stock Completo</p>
+                        <p id="summary-stock-ok" class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">0</p>
+                    </div>
+                    <div class="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-center">
+                        <p class="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase">Stock Parcial</p>
+                        <p id="summary-stock-partial" class="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">0</p>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-950/20 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-center">
+                        <p class="text-xs font-semibold text-red-500 uppercase">Sin Stock</p>
+                        <p id="summary-stock-none" class="text-xl font-black text-red-500 mt-0.5">0</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="px-4 py-3">Catálogo</th>
+                                <th class="px-4 py-3">Descripción</th>
+                                <th class="px-4 py-3 text-center">Cant. Pedida</th>
+                                <th class="px-4 py-3 text-center">Físico Disponible</th>
+                                <th class="px-4 py-3 text-center">Estado Stock</th>
+                                <th class="px-4 py-3">Ubicaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excel-compare-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
+                            <tr>
+                                <td colspan="6" class="text-center py-12 text-slate-400 dark:text-slate-500 italic">
+                                    Ningún archivo cargado. Seleccione un archivo Excel arriba para realizar la comparación.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 shrink-0 flex justify-between gap-3">
+                <button type="button" onclick="cerrarExcelImportModal()"
+                    class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-5 rounded-xl transition text-sm">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-confirm-excel-import" onclick="confirmExcelImport()" disabled
+                    class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl transition shadow-md text-sm">
+                    ✔️ Cargar al Pedido
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- â•â•â• FIREBASE + LÃ“GICA â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <script src="maestro-cache.js"></script>
     <script type="module">
         import { db, rtdb, appId } from './src/firebase-init.js';
@@ -275,7 +326,7 @@
         window.onValue = onValue;
         window.set = set;
 
-        // Verificar sesión y conectar
+        // Verificar sesiÃ³n y conectar
         try {
             const user = await protegerPagina();
             const sesion = await obtenerSesion(user);
@@ -285,18 +336,18 @@
                 '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Conectado</span>';
         } catch (e) {
             document.getElementById('firebase-status').innerHTML =
-                '<span class="w-2 h-2 rounded-full bg-red-400"></span> <span class="text-red-500 font-semibold">Sin conexión</span>';
+                '<span class="w-2 h-2 rounded-full bg-red-400"></span> <span class="text-red-500 font-semibold">Sin conexiÃ³n</span>';
         }
         
         // Inicializar estado una vez conectado
         if (typeof window.initEstado === 'function') {
             window.initEstado();
         } else {
-            // Fallback por si initEstado todavía no cargó (aunque el módulo se ejecuta diferido)
+            // Fallback por si initEstado todavÃ­a no cargÃ³ (aunque el mÃ³dulo se ejecuta diferido)
             setTimeout(() => window.initEstado && window.initEstado(), 50);
         }
 
-        // Función global para buscar ubicaciones en Firebase por catálogo
+        // FunciÃ³n global para buscar ubicaciones en Firebase por catÃ¡logo
         window._buscarUbicacionesFirebase = async function(catalogo) {
             const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
 
@@ -304,7 +355,6 @@
             const snap = await getDocs(q);
             const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            // Agrupar por ubicación
             const grouped = {};
             items.forEach(item => {
                 const ub = item.ubicacion || 'RECEPCION';
@@ -315,6 +365,34 @@
 
             return Object.values(grouped).sort((a, b) => b.cantidad - a.cantidad);
         };
+
+        window.fetchPhysicalInventoryMap = async function(catalogosList) {
+            const uniqueCatalogos = [...new Set(catalogosList)];
+            const stockMap = {};
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'activos');
+
+            const promises = uniqueCatalogos.map(async (catalogo) => {
+                const q = query(colRef, where('name', '==', catalogo));
+                const snap = await getDocs(q);
+                const docs = snap.docs.map(d => d.data());
+                
+                let totalStock = 0;
+                const locGroups = {};
+                docs.forEach(doc => {
+                    const ub = doc.ubicacion || 'RECEPCION';
+                    const qty = parseInt(doc.cantidad) || 0;
+                    totalStock += qty;
+                    if (!locGroups[ub]) locGroups[ub] = 0;
+                    locGroups[ub] += qty;
+                });
+                const locations = Object.entries(locGroups).map(([loc, qty]) => ({ loc, qty }));
+                stockMap[catalogo] = { totalStock: totalStock, locations: locations };
+            });
+
+            await Promise.all(promises);
+            return stockMap;
+        };
+
     </script>
 
     <script>
@@ -323,12 +401,16 @@
             localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         }
 
-        // ─── ESTADO ──────────────────────────────────────────────────────────
+        // â”€â”€â”€ ESTADO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         let viewMode = localStorage.getItem('gram_prep_view_mode') || 'PRODUCTO';
+        let physicalStockCache = null;
+        window.lastExcelImportedItems = [];
+        window.lastExcelStockMap = null;
         let maestroData = [];
+
         
         let gramState = {
-            orders: [{ id: Date.now().toString(), name: 'Preparación de Pedido', items: [] }],
+            orders: [{ id: Date.now().toString(), name: 'PreparaciÃ³n de Pedido', items: [] }],
             currentOrderId: localStorage.getItem('gram_prep_current') || null
         };
         let prepList = []; 
@@ -358,13 +440,13 @@
                                     unifiedList[cat] = {
                                         catalogo: cat, descripcion: item.descripcion, parte: item.parte,
                                         cantidadTotal: item.cantidadTotal !== undefined ? item.cantidadTotal : (item.cantidad || 1),
-                                        ubicaciones: item.ubicaciones ? [...item.ubicaciones] : [{ loc: item.ubicacion || '—', qty: item.cantidad || 1 }]
+                                        ubicaciones: item.ubicaciones ? [...item.ubicaciones] : [{ loc: item.ubicacion || 'â€”', qty: item.cantidad || 1 }]
                                     };
                                 } else {
                                     let qty = item.cantidadTotal !== undefined ? item.cantidadTotal : (item.cantidad || 1);
                                     unifiedList[cat].cantidadTotal += qty;
                                     if (item.ubicaciones) unifiedList[cat].ubicaciones.push(...item.ubicaciones);
-                                    else unifiedList[cat].ubicaciones.push({ loc: item.ubicacion || '—', qty });
+                                    else unifiedList[cat].ubicaciones.push({ loc: item.ubicacion || 'â€”', qty });
                                 }
                             });
                             gramState.orders[0].items = Object.values(unifiedList);
@@ -411,7 +493,7 @@
 
         window.crearNuevaOrden = function() {
             let newId = Date.now().toString();
-            gramState.orders.unshift({ id: newId, name: 'Nueva Preparación', items: [] });
+            gramState.orders.unshift({ id: newId, name: 'Nueva PreparaciÃ³n', items: [] });
             gramState.currentOrderId = newId;
             saveGramState();
             loadCurrentOrder();
@@ -439,7 +521,7 @@
 
         window.eliminarOrden = function() {
             Swal.fire({
-                title: '¿Borrar esta lista?', text: 'Se perderán todos los ítems de esta preparación.',
+                title: 'Â¿Borrar esta lista?', text: 'Se perderÃ¡n todos los Ã­tems de esta preparaciÃ³n.',
                 icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Borrar'
             }).then(r => {
                 if (r.isConfirmed) {
@@ -457,7 +539,7 @@
             const sel = document.getElementById('order-selector');
             if (!sel) return;
             sel.innerHTML = gramState.orders.map(o => 
-                `<option value="${o.id}" ${o.id === gramState.currentOrderId ? 'selected' : ''}>${o.name} (${(o.items || []).length} ítems)</option>`
+                `<option value="${o.id}" ${o.id === gramState.currentOrderId ? 'selected' : ''}>${o.name} (${(o.items || []).length} Ã­tems)</option>`
             ).join('');
         }
 
@@ -468,7 +550,7 @@
 
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2800, timerProgressBar: true });
 
-        // ─── CARGAR MAESTRO ──────────────────────────────────────────────────
+        // â”€â”€â”€ CARGAR MAESTRO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function loadMaestro() {
             const st = document.getElementById('maestro-status');
             try {
@@ -477,15 +559,15 @@
                 maestroData = raw.map(item => ({
                     catalogo: String(item['MATERIAL'] || item['Material'] || item.catalogo || ''),
                     descripcion: String(item['TEXTO'] || item['Texto_breve_de_material'] || item.descripcion || ''),
-                    parte: String(item['CÓDIGO DE PARTE'] || item['Part_Number'] || item.codigo_parte || ''),
+                    parte: String(item['CÃ“DIGO DE PARTE'] || item['Part_Number'] || item.codigo_parte || ''),
                 })).filter(x => x.catalogo);
-                st.textContent = `✅ ${maestroData.length.toLocaleString()} ítems en maestro`;
+                st.textContent = `âœ… ${maestroData.length.toLocaleString()} Ã­tems en maestro`;
             } catch {
-                st.textContent = '⚠️ No se pudo cargar el maestro. Verificá tu conexión.';
+                st.textContent = 'âš ï¸ No se pudo cargar el maestro. VerificÃ¡ tu conexiÃ³n.';
             }
         }
 
-        // ─── BUSCADOR ────────────────────────────────────────────────────────
+        // â”€â”€â”€ BUSCADOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         window.buscarEnMaestro = function() {
             const q = document.getElementById('prep-search-input').value.toLowerCase().trim();
             const container = document.getElementById('search-results-prep');
@@ -501,7 +583,7 @@
                 container.innerHTML = _searchResults.map((item, i) => `
                     <div class="res-item" onclick="seleccionarItem(${i})">
                         <span class="res-cat">${item.catalogo}</span>
-                        <span style="color:#64748b"> — ${item.descripcion || 'Sin descripción'}</span>
+                        <span style="color:#64748b"> â€” ${item.descripcion || 'Sin descripciÃ³n'}</span>
                         ${item.parte ? `<span style="font-size:0.75rem;color:#94a3b8"> (${item.parte})</span>` : ''}
                     </div>`).join('');
             }
@@ -518,8 +600,8 @@
 
             // Rellenar modal
             document.getElementById('modal-catalogo').textContent = item.catalogo;
-            document.getElementById('modal-desc').textContent = item.descripcion || '—';
-            document.getElementById('modal-parte').textContent = item.parte ? `N° Parte: ${item.parte}` : '';
+            document.getElementById('modal-desc').textContent = item.descripcion || 'â€”';
+            document.getElementById('modal-parte').textContent = item.parte ? `NÂ° Parte: ${item.parte}` : '';
             document.getElementById('modal-ubicacion-manual').value = '';
             document.getElementById('modal-cantidad-manual').value = 1;
 
@@ -551,7 +633,7 @@
                         const badgeColor = isRecepcion
                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-300 dark:border-amber-700'
                             : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700';
-                        const icon = isRecepcion ? '📦' : '📍';
+                        const icon = isRecepcion ? 'ðŸ“¦' : 'ðŸ“';
                         return `
                         <div class="loc-card bg-slate-50 dark:bg-slate-900 rounded-xl p-3 flex items-center justify-between gap-3 border border-slate-100 dark:border-slate-700 cursor-default">
                             <div class="flex items-center gap-3">
@@ -575,7 +657,7 @@
                                 class="w-20 p-2 border border-indigo-300 dark:border-indigo-600 rounded-lg text-center font-black text-lg dark:bg-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
                             <button type="button" onclick="agregarCantidadTotal()"
                                 class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg transition shadow-md">
-                                ➕ Agregar
+                                âž• Agregar
                             </button>
                         </div>
                     </div>`;
@@ -595,7 +677,7 @@
             }
         }
 
-        // Agregar auto-asignando según ubicaciones disponibles
+        // Agregar auto-asignando segÃºn ubicaciones disponibles
         window.agregarCantidadTotal = function() {
             let required = parseInt(document.getElementById('modal-cantidad-total').value) || 1;
             let allocated = [];
@@ -609,7 +691,7 @@
             }
 
             if (remaining > 0) {
-                Swal.fire('Stock Insuficiente', 'Solo hay stock conocido para cubrir ' + (required - remaining) + ' unidades. Se agregará lo que haya disponible.', 'warning');
+                Swal.fire('Stock Insuficiente', 'Solo hay stock conocido para cubrir ' + (required - remaining) + ' unidades. Se agregarÃ¡ lo que haya disponible.', 'warning');
             }
 
             if (allocated.length > 0) {
@@ -619,7 +701,7 @@
 
         // Agregar manual (para cuando no hay stock o lo saltamos)
         window.agregarManual = function() {
-            const ub = document.getElementById('modal-ubicacion-manual').value.trim().toUpperCase() || '—';
+            const ub = document.getElementById('modal-ubicacion-manual').value.trim().toUpperCase() || 'â€”';
             const qty = parseInt(document.getElementById('modal-cantidad-manual').value) || 1;
             agregarALista([{ loc: ub, qty: qty }], qty);
         }
@@ -646,7 +728,7 @@
                     cantidadTotal: totalQty,
                     ubicaciones: [...ubicacionesArr]
                 });
-                Toast.fire({ icon: 'success', title: `"${pendingItem.catalogo}" agregado ✅` });
+                Toast.fire({ icon: 'success', title: `"${pendingItem.catalogo}" agregado âœ…` });
             }
             savePrepList();
             renderList();
@@ -658,11 +740,11 @@
             pendingItem = null;
         }
 
-        // ─── EDITAR ──────────────────────────────────────────────────────────
+        // â”€â”€â”€ EDITAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         window.abrirEdicion = function(i) {
             editingIndex = i;
             const item = prepList[i];
-            document.getElementById('edit-label').textContent = `${item.catalogo} — ${item.descripcion}`;
+            document.getElementById('edit-label').textContent = `${item.catalogo} â€” ${item.descripcion}`;
             document.getElementById('edit-ubicacion').value = item.ubicaciones.map(u => `${u.loc}: ${u.qty}`).join(', ');
             document.getElementById('edit-cantidad').value = item.cantidadTotal;
             document.getElementById('edit-modal').classList.remove('hidden');
@@ -687,13 +769,13 @@
                     if (splitIdx !== -1) {
                         let loc = p.substring(0, splitIdx).trim().toUpperCase();
                         let q = parseInt(p.substring(splitIdx + 1).trim());
-                        newUbs.push({ loc: loc || '—', qty: isNaN(q) ? qty : q });
+                        newUbs.push({ loc: loc || 'â€”', qty: isNaN(q) ? qty : q });
                     } else {
-                        newUbs.push({ loc: p.trim().toUpperCase() || '—', qty: qty });
+                        newUbs.push({ loc: p.trim().toUpperCase() || 'â€”', qty: qty });
                     }
                 }
             } else {
-                newUbs.push({ loc: '—', qty: qty });
+                newUbs.push({ loc: 'â€”', qty: qty });
             }
 
             prepList[editingIndex].cantidadTotal = qty;
@@ -702,14 +784,14 @@
             savePrepList();
             renderList();
             cerrarEditModal();
-            Toast.fire({ icon: 'success', title: 'Ítem actualizado ✅' });
+            Toast.fire({ icon: 'success', title: 'Ãtem actualizado âœ…' });
         }
 
-        // ─── ELIMINAR ────────────────────────────────────────────────────────
+        // â”€â”€â”€ ELIMINAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         window.eliminarItem = function(i) {
             Swal.fire({
-                title: '¿Eliminar?',
-                text: `"${prepList[i].catalogo}" será removido de la lista.`,
+                title: 'Â¿Eliminar?',
+                text: `"${prepList[i].catalogo}" serÃ¡ removido de la lista.`,
                 icon: 'warning', showCancelButton: true,
                 confirmButtonColor: '#ef4444', cancelButtonText: 'Cancelar', confirmButtonText: 'Eliminar',
             }).then(r => {
@@ -717,41 +799,55 @@
                     prepList.splice(i, 1);
                     savePrepList();
                     renderList();
-                    Toast.fire({ icon: 'success', title: 'Ítem eliminado' });
+                    Toast.fire({ icon: 'success', title: 'Ãtem eliminado' });
                 }
             });
         }
 
-        // ─── LIMPIAR ─────────────────────────────────────────────────────────
+        // â”€â”€â”€ LIMPIAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         window.limpiarLista = function() {
             if (!prepList.length) return;
             Swal.fire({
-                title: '¿Limpiar toda la lista?', text: 'Esta acción no se puede deshacer.',
+                title: 'Â¿Limpiar toda la lista?', text: 'Esta acciÃ³n no se puede deshacer.',
                 icon: 'warning', showCancelButton: true,
-                confirmButtonColor: '#ef4444', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, limpiar',
+                confirmButtonColor: '#ef4444', cancelButtonText: 'Cancelar', confirmButtonText: 'SÃ­, limpiar',
             }).then(r => {
                 if (r.isConfirmed) { prepList.length = 0; savePrepList(); renderList(); Toast.fire({ icon: 'success', title: 'Lista limpiada' }); }
             });
         }
 
-        // ─── VISTA ───────────────────────────────────────────────────────────
-        window.toggleViewMode = function() {
-            viewMode = viewMode === 'PRODUCTO' ? 'UBICACION' : 'PRODUCTO';
+        // â”€â”€â”€ VISTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        window.toggleViewMode = async function() {
+            if (viewMode === 'PRODUCTO') {
+                viewMode = 'UBICACION';
+            } else if (viewMode === 'UBICACION') {
+                viewMode = 'DISPONIBILIDAD';
+                physicalStockCache = null;
+                await ensurePhysicalStockCache();
+            } else {
+                viewMode = 'PRODUCTO';
+            }
             localStorage.setItem('gram_prep_view_mode', viewMode);
             renderList();
         }
 
-        // ─── RENDER ──────────────────────────────────────────────────────────
+        // ─── RENDER ───
         function renderList() {
             const tbody = document.getElementById('prep-list-body');
             const thead = document.querySelector('thead tr');
             
             const toggleBtn = document.getElementById('btn-toggle-view');
             if (toggleBtn) {
-                toggleBtn.innerHTML = viewMode === 'PRODUCTO' ? '👁️ Ver por Ubicación' : '👁️ Ver por Producto';
+                if (viewMode === 'PRODUCTO') {
+                    toggleBtn.innerHTML = '👁️ Ver por Ubicación';
+                } else if (viewMode === 'UBICACION') {
+                    toggleBtn.innerHTML = '👁️ Ver Disponibilidad';
+                } else {
+                    toggleBtn.innerHTML = '👁️ Ver por Producto';
+                }
             }
 
-            document.getElementById('item-count-badge').textContent = `${prepList.length} ítem${prepList.length !== 1 ? 's' : ''}`;
+            document.getElementById('item-count-badge').textContent = `${prepList.length} item${prepList.length !== 1 ? 's' : ''}`;
 
             if (!prepList.length) {
                 thead.innerHTML = `
@@ -764,7 +860,7 @@
                     <th class="px-4 py-3 text-center no-print">Acción</th>
                 `;
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center py-14 text-slate-400 italic">
-                    <div class="flex flex-col items-center gap-2"><span class="text-4xl">🔍</span><span class="text-sm">Buscá un material arriba para comenzar</span></div></td></tr>`;
+                    <div class="flex flex-col items-center gap-2"><span class="text-4xl">📦</span><span class="text-sm">Buscá un material arriba para comenzar</span></div></td></tr>`;
                 document.getElementById('total-qty').textContent = '0';
                 return;
             }
@@ -793,7 +889,7 @@
                     
                     return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
                         <td class="px-4 py-3 text-slate-400 text-xs font-bold">${i + 1}</td>
-                        <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm">${item.catalogo}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm font-mono">${item.catalogo}</td>
                         <td class="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-[180px] truncate" title="${item.descripcion}">${item.descripcion || '—'}</td>
                         <td class="px-4 py-3 font-mono text-xs text-slate-500">${item.parte || '—'}</td>
                         <td class="px-4 py-3 min-w-[160px]">${ubicBadge}</td>
@@ -810,7 +906,7 @@
                         </td>
                     </tr>`;
                 }).join('');
-            } else {
+            } else if (viewMode === 'UBICACION') {
                 thead.innerHTML = `
                     <th class="px-4 py-3" colspan="6">📍 Agrupado por Ubicación Física</th>
                 `;
@@ -851,7 +947,7 @@
                         html += `
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition border-b border-slate-100 dark:border-slate-700 last:border-b-0">
                             <td class="px-4 py-3 text-slate-400 text-xs font-bold pl-8 w-12">↳</td>
-                            <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm">${row.catalogo}</td>
+                            <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm font-mono">${row.catalogo}</td>
                             <td class="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-[200px] truncate" title="${row.descripcion}">${row.descripcion || '—'}</td>
                             <td class="px-4 py-3 font-mono text-xs text-slate-500">${row.parte || '—'}</td>
                             <td class="px-4 py-3 text-center w-24">
@@ -867,9 +963,89 @@
                 });
 
                 tbody.innerHTML = html;
+            } else if (viewMode === 'DISPONIBILIDAD') {
+                if (physicalStockCache === null) {
+                    ensurePhysicalStockCache().then(() => {
+                        renderList();
+                    });
+                    return;
+                }
+
+                thead.innerHTML = `
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-4 py-3">Catálogo</th>
+                    <th class="px-4 py-3">Descripción</th>
+                    <th class="px-4 py-3">N° Parte</th>
+                    <th class="px-4 py-3 text-center">Pedido</th>
+                    <th class="px-4 py-3 text-center">Físico Disponible</th>
+                    <th class="px-4 py-3 text-center">Diferencia</th>
+                    <th class="px-4 py-3 text-center no-print">Acción</th>
+                `;
+
+                tbody.innerHTML = prepList.map((item, i) => {
+                    total += item.cantidadTotal;
+                    
+                    const stockInfo = physicalStockCache[item.catalogo] || { totalStock: 0, locations: [] };
+                    const fisico = stockInfo.totalStock;
+                    const diff = fisico - item.cantidadTotal;
+                    
+                    let diffText = diff >= 0 ? `+${diff}` : `${diff}`;
+                    let diffClass = diff >= 0 
+                        ? 'text-emerald-600 dark:text-emerald-400 font-extrabold text-sm' 
+                        : 'text-red-600 dark:text-red-500 font-extrabold text-sm';
+
+                    const ubsText = stockInfo.locations.length > 0 
+                        ? stockInfo.locations.map(u => `${u.loc} (x${u.qty})`).join(', ') 
+                        : 'Sin stock';
+
+                    return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+                        <td class="px-4 py-3 text-slate-400 text-xs font-bold">${i + 1}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 text-sm font-mono">${item.catalogo}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300 text-xs max-w-[180px] truncate" title="${item.descripcion}">${item.descripcion || '—'}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500">${item.parte || '—'}</td>
+                        <td class="px-4 py-3 text-center font-bold text-slate-800 dark:text-white">${item.cantidadTotal}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">${fisico}</span>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate max-w-[150px]" title="${ubsText}">${ubsText}</div>
+                        </td>
+                        <td class="px-4 py-3 text-center ${diffClass}">${diffText}</td>
+                        <td class="px-4 py-3 text-center no-print">
+                            <div class="flex items-center justify-center gap-1">
+                                <button type="button" onclick="abrirEdicion(${i})"
+                                    class="bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold px-2 py-1.5 rounded-lg text-xs border border-amber-200 dark:border-amber-800 transition">✏️</button>
+                                <button type="button" onclick="eliminarItem(${i})"
+                                    class="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 font-bold px-2 py-1.5 rounded-lg text-xs border border-red-200 dark:border-red-800 transition">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
             }
 
             document.getElementById('total-qty').textContent = total;
+        }
+
+        async function ensurePhysicalStockCache() {
+            if (physicalStockCache !== null) return;
+            if (!prepList.length) return;
+
+            Swal.fire({
+                title: 'Consultando stock físico...',
+                html: 'Obteniendo disponibilidad en tiempo real.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const catalogosList = prepList.map(x => x.catalogo);
+                physicalStockCache = await window.fetchPhysicalInventoryMap(catalogosList);
+                Swal.close();
+            } catch (err) {
+                console.error("Error al cargar stock físico:", err);
+                Swal.close();
+                Toast.fire({ icon: 'error', title: 'Error al consultar stock' });
+            }
         }
 
         function savePrepList() { 
@@ -877,7 +1053,6 @@
             actualizarSelectorOrdenes(); 
         }
 
-        // ─── IMPRIMIR ────────────────────────────────────────────────────────
         window.imprimirLista = function() {
             if (!prepList.length) { Toast.fire({ icon: 'warning', title: 'La lista está vacía' }); return; }
             document.getElementById('print-meta').textContent =
@@ -885,41 +1060,306 @@
             window.print();
         }
 
-        // ─── EXCEL ───────────────────────────────────────────────────────────
-        window.exportarExcel = function() {
+        window.exportarExcel = async function() {
             if (!prepList.length) { Toast.fire({ icon: 'warning', title: 'La lista está vacía' }); return; }
-            const rows = prepList.map((x, i) => ({
-                '#': i+1, 
-                'Catálogo': x.catalogo, 
-                'Descripción': x.descripcion, 
-                'N° Parte': x.parte, 
-                'Ubicaciones': x.ubicaciones.map(u => `${u.loc}: ${u.qty}`).join(' | '), 
-                'Cantidad Total': x.cantidadTotal
-            }));
+            
+            let rows = [];
+            let colsConfig = [];
+            let sheetName = 'Preparación';
+
+            if (viewMode === 'PRODUCTO') {
+                rows = prepList.map((x, i) => ({
+                    '#': i+1, 
+                    'Catálogo': x.catalogo, 
+                    'Descripción': x.descripcion, 
+                    'N° Parte': x.parte, 
+                    'Ubicaciones': x.ubicaciones.map(u => `${u.loc}: ${u.qty}`).join(' | '), 
+                    'Cantidad Total': x.cantidadTotal
+                }));
+                colsConfig = [{wch:4},{wch:18},{wch:35},{wch:18},{wch:25},{wch:12}];
+                sheetName = 'Pedido por Producto';
+
+            } else if (viewMode === 'UBICACION') {
+                let locGroups = {};
+                prepList.forEach((item, itemIdx) => {
+                    if (!item.ubicaciones || item.ubicaciones.length === 0) {
+                        if (!locGroups['—']) locGroups['—'] = [];
+                        locGroups['—'].push({ ...item, qtyToPick: item.cantidadTotal });
+                        return;
+                    }
+                    item.ubicaciones.forEach(u => {
+                        if (!locGroups[u.loc]) locGroups[u.loc] = [];
+                        locGroups[u.loc].push({ ...item, qtyToPick: u.qty });
+                    });
+                });
+
+                let sortedLocs = Object.keys(locGroups).sort((a,b) => a.localeCompare(b));
+                let counter = 1;
+                sortedLocs.forEach(loc => {
+                    locGroups[loc].forEach(row => {
+                        rows.push({
+                            '#': counter++,
+                            'Ubicación': loc,
+                            'Catálogo': row.catalogo,
+                            'Descripción': row.descripcion,
+                            'N° Parte': row.parte,
+                            'Cantidad a Preparar': row.qtyToPick
+                        });
+                    });
+                });
+                colsConfig = [{wch:4},{wch:15},{wch:18},{wch:35},{wch:18},{wch:15}];
+                sheetName = 'Pedido por Ubicación';
+
+            } else if (viewMode === 'DISPONIBILIDAD') {
+                await ensurePhysicalStockCache();
+                const stockMap = physicalStockCache || {};
+
+                rows = prepList.map((x, i) => {
+                    const stockInfo = stockMap[x.catalogo] || { totalStock: 0, locations: [] };
+                    const fisico = stockInfo.totalStock;
+                    const diff = fisico - x.cantidadTotal;
+                    const diffText = diff >= 0 ? `+${diff}` : `${diff}`;
+                    const ubsText = stockInfo.locations.map(u => `${u.loc} (x${u.qty})`).join(', ') || 'Sin stock';
+
+                    return {
+                        '#': i+1, 
+                        'Catálogo': x.catalogo, 
+                        'Descripción': x.descripcion, 
+                        'N° Parte': x.parte, 
+                        'Pedido': x.cantidadTotal,
+                        'Físico Disponible': fisico,
+                        'Diferencia': diffText,
+                        'Ubicaciones Disponibles': ubsText
+                    };
+                });
+                colsConfig = [{wch:4},{wch:18},{wch:35},{wch:18},{wch:10},{wch:18},{wch:12},{wch:30}];
+                sheetName = 'Diferencia y Disponibilidad';
+            }
+
             const _escFormula = (v) => (typeof v === 'string' && /^[=+\-@\t\r]/.test(v)) ? "'" + v : v;
             const rowsSafe = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, _escFormula(v)])));
             const ws = XLSX.utils.json_to_sheet(rowsSafe);
-            ws['!cols'] = [{wch:4},{wch:18},{wch:35},{wch:18},{wch:25},{wch:12}];
+            ws['!cols'] = colsConfig;
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Preparación');
-            XLSX.writeFile(wb, `Preparacion_${new Date().toISOString().slice(0,10)}.xlsx`);
-            Toast.fire({ icon: 'success', title: 'Excel descargado ✅' });
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, `Preparacion_${sheetName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            Toast.fire({ icon: 'success', title: 'Excel descargado con éxito.' });
         }
 
-        // ─── INIT ─────────────────────────────────────────────────────────────
-        loadMaestro();
-        renderList();
+        // ─── CONTROLADOR DE IMPORTACION DE EXCEL ───
+        window.openExcelImportModal = function() {
+            document.getElementById('excel-file-input').value = '';
+            document.getElementById('excel-compare-table-body').innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-12 text-slate-400 dark:text-slate-500 italic">
+                        Ningún archivo cargado. Seleccione un archivo Excel arriba para realizar la comparación.
+                    </td>
+                </tr>
+            `;
+            document.getElementById('excel-summary-container').classList.add('hidden');
+            document.getElementById('btn-confirm-excel-import').disabled = true;
+            window.lastExcelImportedItems = [];
+            window.lastExcelStockMap = null;
+            document.getElementById('excel-import-modal').classList.remove('hidden');
+        };
 
-        // Cerrar dropdown al clickear fuera
-        document.addEventListener('click', e => {
-            if (!document.getElementById('prep-search-input').contains(e.target) &&
-                !document.getElementById('search-results-prep').contains(e.target))
-                document.getElementById('search-results-prep').classList.add('hidden');
-        });
+        window.cerrarExcelImportModal = function() {
+            document.getElementById('excel-import-modal').classList.add('hidden');
+        };
+
+        window.handleExcelImport = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    Swal.fire({
+                        title: 'Procesando archivo...',
+                        html: 'Leyendo datos del Excel y verificando stock...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (!json || json.length === 0) {
+                        throw new Error("El archivo Excel está vacío.");
+                    }
+
+                    const firstRow = json[0];
+                    let catalogoKey = null;
+                    let cantidadKey = null;
+
+                    for (let key in firstRow) {
+                        const lowKey = key.toLowerCase().trim();
+                        if (lowKey === 'catálogo' || lowKey === 'catalogo' || lowKey === 'código' || lowKey === 'codigo' || lowKey === 'material' || lowKey === 'artículo' || lowKey === 'articulo' || lowKey === 'item') {
+                            catalogoKey = key;
+                        }
+                        if (lowKey === 'cantidad' || lowKey === 'cant' || lowKey === 'pedido' || lowKey === 'qty' || lowKey === 'unidades') {
+                            cantidadKey = key;
+                        }
+                    }
+
+                    if (!catalogoKey) catalogoKey = Object.keys(firstRow)[0];
+                    if (!cantidadKey) cantidadKey = Object.keys(firstRow)[1] || Object.keys(firstRow)[0];
+
+                    const importedItems = json.map(row => {
+                        const cat = String(row[catalogoKey] || '').trim();
+                        const qty = parseInt(row[cantidadKey]) || 0;
+                        return { catalogo: cat, cantidad: qty, descripcion: '', parte: '' };
+                    }).filter(item => item.catalogo && item.cantidad > 0);
+
+                    if (importedItems.length === 0) {
+                        throw new Error("No se encontraron registros válidos con catálogo y cantidad mayor a 0.");
+                    }
+
+                    importedItems.forEach(item => {
+                        if (maestroData && maestroData.length > 0) {
+                            const mItem = maestroData.find(x => x.catalogo === item.catalogo);
+                            if (mItem) {
+                                item.descripcion = mItem.descripcion;
+                                item.parte = mItem.parte;
+                            }
+                        }
+                    });
+
+                    const catalogosList = importedItems.map(x => x.catalogo);
+                    const stockMap = await window.fetchPhysicalInventoryMap(catalogosList);
+                    window.lastExcelStockMap = stockMap;
+                    window.lastExcelImportedItems = importedItems;
+
+                    let totalItems = importedItems.length;
+                    let stockOkCount = 0;
+                    let stockPartialCount = 0;
+                    let stockNoneCount = 0;
+
+                    const tbody = document.getElementById('excel-compare-table-body');
+                    tbody.innerHTML = '';
+
+                    importedItems.forEach(lbl => {
+                        const stockInfo = stockMap[lbl.catalogo] || { totalStock: 0, locations: [] };
+                        const totalStock = stockInfo.totalStock;
+
+                        let statusBadge = '';
+                        let statusClass = '';
+
+                        if (totalStock >= lbl.cantidad) {
+                            statusBadge = '✔️ Completo';
+                            statusClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50';
+                            stockOkCount++;
+                        } else if (totalStock > 0) {
+                            statusBadge = '⚠️ Parcial';
+                            statusClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50';
+                            stockPartialCount++;
+                        } else {
+                            statusBadge = '❌ Sin Stock';
+                            statusClass = 'bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-400 border border-red-200 dark:border-red-900/50';
+                            stockNoneCount++;
+                        }
+
+                        const ubsText = stockInfo.locations.length > 0 
+                            ? stockInfo.locations.map(u => `<span class="bg-indigo-50 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-2 py-0.5 rounded-lg text-xs font-semibold mr-1 font-mono">${u.loc} (x${u.qty})</span>`).join(' ') 
+                            : '<span class="text-red-500 italic font-semibold text-xs">No disponible</span>';
+
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-800/40 transition border-b border-slate-100 dark:border-slate-700";
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400 font-mono">${lbl.catalogo}</td>
+                            <td class="px-4 py-3 text-xs max-w-xs truncate font-semibold" title="${lbl.descripcion}">${lbl.descripcion || '<span class="text-gray-400 italic font-semibold">Sin descripción</span>'}</td>
+                            <td class="px-4 py-3 text-center font-bold text-slate-800 dark:text-white">${lbl.cantidad}</td>
+                            <td class="px-4 py-3 text-center font-bold text-indigo-600 dark:text-indigo-400">${totalStock}</td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${statusClass}">${statusBadge}</span>
+                            </td>
+                            <td class="px-4 py-3 text-xs">${ubsText}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('summary-total-items').textContent = totalItems;
+                    document.getElementById('summary-stock-ok').textContent = stockOkCount;
+                    document.getElementById('summary-stock-partial').textContent = stockPartialCount;
+                    document.getElementById('summary-stock-none').textContent = stockNoneCount;
+                    document.getElementById('excel-summary-container').classList.remove('hidden');
+
+                    document.getElementById('btn-confirm-excel-import').disabled = false;
+                    Swal.close();
+                } catch (err) {
+                    Swal.close();
+                    console.error("Error al procesar Excel:", err);
+                    Swal.fire("Error", err.message || "No se pudo leer el archivo Excel.", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.confirmExcelImport = function() {
+            if (!window.lastExcelImportedItems || window.lastExcelImportedItems.length === 0 || !window.lastExcelStockMap) return;
+
+            const stockMap = window.lastExcelStockMap;
+            let loadedCount = 0;
+
+            window.lastExcelImportedItems.forEach(item => {
+                const stockInfo = stockMap[item.catalogo] || { totalStock: 0, locations: [] };
+                const required = item.cantidad;
+                
+                let allocated = [];
+                let remaining = required;
+
+                for (let u of stockInfo.locations) {
+                    if (remaining <= 0) break;
+                    let take = Math.min(u.qty, remaining);
+                    allocated.push({ loc: u.loc, qty: take });
+                    remaining -= take;
+                }
+
+                if (remaining > 0) {
+                    allocated.push({ loc: 'SIN STOCK', qty: remaining });
+                }
+
+                const existing = prepList.find(x => x.catalogo === item.catalogo);
+
+                if (existing) {
+                    existing.cantidadTotal += required;
+                    for (let allocItem of allocated) {
+                        let exUb = existing.ubicaciones.find(x => x.loc === allocItem.loc);
+                        if (exUb) exUb.qty += allocItem.qty;
+                        else existing.ubicaciones.push(allocItem);
+                    }
+                } else {
+                    prepList.push({
+                        catalogo: item.catalogo,
+                        descripcion: item.descripcion || '',
+                        parte: item.parte || '',
+                        cantidadTotal: required,
+                        ubicaciones: allocated
+                    });
+                }
+                loadedCount++;
+            });
+
+            savePrepList();
+            renderList();
+            cerrarExcelImportModal();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Importación Exitosa',
+                text: `Se importaron correctamente ${loadedCount} materiales al pedido, asignando ubicaciones físicas automáticas.`,
+                confirmButtonColor: '#10b981'
+            });
+        };
 
         // Enter/Escape en modales
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { cerrarModal(); cerrarEditModal(); }
+            if (e.key === 'Escape') { cerrarModal(); cerrarEditModal(); cerrarExcelImportModal(); }
             if (e.key === 'Enter') {
                 if (!document.getElementById('edit-modal').classList.contains('hidden')) {
                     guardarEdicion();
@@ -932,3 +1372,4 @@
     </script>
 </body>
 </html>
+
