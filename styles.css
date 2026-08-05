@@ -562,3 +562,88 @@ header {
     font-size: 0.75rem;
     font-weight: 600;
 }
+
+/* --- ESTILOS IMPECCABLE UI DESIGN SYSTEM --- */
+header {
+    background: linear-gradient(135deg, rgba(11, 15, 25, 0.95) 0%, rgba(23, 32, 54, 0.95) 100%) !important;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+.brand-icon {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #10b981 100%) !important;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5) !important;
+    transition: transform 0.3s ease;
+}
+
+.brand-icon:hover {
+    transform: scale(1.08) rotate(3deg);
+}
+
+.kpi-card {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px) scale(1.01) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+    box-shadow: 0 12px 35px rgba(99, 102, 241, 0.2) !important;
+}
+
+.filter-bar {
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+}
+
+.select-style, .input-style {
+    background: rgba(11, 15, 25, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: all 0.2s ease !important;
+}
+
+.select-style:focus, .input-style:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 18px rgba(99, 102, 241, 0.35) !important;
+}
+
+table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+th {
+    background: rgba(15, 23, 42, 0.95) !important;
+    color: #a5b4fc !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+tr {
+    transition: all 0.2s ease !important;
+}
+
+tbody tr:hover {
+    background: rgba(30, 41, 59, 0.85) !important;
+    transform: translateX(2px) !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4) !important;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 25px rgba(99, 102, 241, 0.6) !important;
+    transform: translateY(-2px) !important;
+}
