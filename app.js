@@ -4,6 +4,9 @@
 const STORAGE_KEY = 'tablero_ingresos_sitios_v1';
 const ADMIN_SESSION_KEY = 'tablero_admin_session_v1';
 const DEFAULT_ADMIN_PASS = 'zilkjl2026';
+const MATERIALS_REPORT_FROM = '2026-07';
+const MATERIALS_REPORT_API = 'https://dev.inventariosanmartin.com.ar/api/reporte-materiales-mensual?desde=' + MATERIALS_REPORT_FROM;
+const SITE_STATUS_API = 'https://dev.inventariosanmartin.com.ar/api/estado-control-sitios';
 
 // Configuración pública del proyecto independiente 'tablero-ingresos'
 const firebaseConfig = {
@@ -30,6 +33,12 @@ let state = {
     editingId: null,
     isAdmin: false,
     adminUser: 'ZILKJL',
+    materialsMonthly: {},
+    materialsReportStatus: 'loading',
+    materialsReportError: '',
+    pwaSiteStatuses: {},
+    pwaSiteStatusReportStatus: 'loading',
+    pwaSiteStatusReportError: '',
     charts: {
         monthly: null,
         contract: null
@@ -59,6 +68,7 @@ function initDOM() {
         pivotTbody: document.getElementById('pivot-tbody'),
         sitesTbody: document.getElementById('sites-tbody'),
         lblPivotCount: document.getElementById('lbl-pivot-count'),
+        lblMaterialsStatus: document.getElementById('lbl-materials-status'),
         lblRecordsCount: document.getElementById('lbl-records-count'),
 
         btnOpenModal: document.getElementById('btn-open-modal'),
@@ -97,6 +107,8 @@ function initApp() {
     checkAdminSession();
     loadSitesLocal();
     initFirebase();
+    loadMaterialsMonthlyReport();
+    loadPwaSiteStatuses();
     initEventListeners();
     populateMonthFilterOptions();
     populateContractorsDatalist();
@@ -209,6 +221,165 @@ function saveSitesLocal() {
     }
 }
 
+
+// --- REPORTE DE MATERIALES DESDE PWA DEV ---
+async function loadMaterialsMonthlyReport() {
+    state.materialsReportStatus = 'loading';
+    state.materialsReportError = '';
+    updateMaterialsStatus();
+
+    try {
+        const response = await fetch(MATERIALS_REPORT_API, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        state.materialsMonthly = normalizeMaterialsMonthlyReport(payload);
+        state.materialsReportStatus = 'ok';
+    } catch (error) {
+        console.warn('No se pudo cargar el reporte mensual de materiales:', error);
+        state.materialsMonthly = {};
+        state.materialsReportStatus = 'error';
+        state.materialsReportError = String(error?.message || error || 'Error de conexión');
+    }
+
+    updateMaterialsStatus();
+    renderApp();
+}
+
+function normalizeMaterialsMonthlyReport(payload) {
+    const result = {};
+    const rows = Array.isArray(payload?.meses) ? payload.meses
+        : Array.isArray(payload?.data) ? payload.data
+        : Array.isArray(payload) ? payload
+        : [];
+
+    for (const row of rows) {
+        const ym = String(row?.mes || row?.month || row?.periodo || '').slice(0, 7);
+        if (!/^\d{4}-\d{2}$/.test(ym)) continue;
+        const readQty = key => {
+            const block = row?.[key] ?? row?.[key.toLowerCase()] ?? {};
+            const value = typeof block === 'number'
+                ? block
+                : (block?.materiales ?? block?.unidades ?? block?.cantidad ?? 0);
+            const n = Number(value);
+            return Number.isFinite(n) ? n : 0;
+        };
+        const gu = readQty('GU');
+        const ran = readQty('RAN');
+        const mou = readQty('MOU');
+        const explicitTotal = row?.total?.materiales ?? row?.total?.unidades ?? row?.totalMateriales;
+        const total = Number.isFinite(Number(explicitTotal)) ? Number(explicitTotal) : gu + ran + mou;
+        result[ym] = { GU: gu, RAN: ran, MOU: mou, total };
+    }
+    return result;
+}
+
+function updateMaterialsStatus() {
+    if (!DOM.lblMaterialsStatus) return;
+    if (state.materialsReportStatus === 'ok') {
+        DOM.lblMaterialsStatus.textContent = `Materiales PWA · desde ${MATERIALS_REPORT_FROM}`;
+        DOM.lblMaterialsStatus.style.color = '#10b981';
+    } else if (state.materialsReportStatus === 'error') {
+        DOM.lblMaterialsStatus.textContent = 'Materiales PWA · sin conexión DEV';
+        DOM.lblMaterialsStatus.style.color = '#f59e0b';
+        DOM.lblMaterialsStatus.title = state.materialsReportError;
+    } else {
+        DOM.lblMaterialsStatus.textContent = 'Materiales PWA · cargando…';
+        DOM.lblMaterialsStatus.style.color = '#94a3b8';
+    }
+}
+
+function formatMaterialQty(ym, contract) {
+    if (ym < MATERIALS_REPORT_FROM) return '—';
+    if (state.materialsReportStatus !== 'ok') return '—';
+    const value = state.materialsMonthly?.[ym]?.[contract];
+    return Number.isFinite(Number(value)) ? Number(value).toLocaleString('es-AR') : '0';
+}
+
+
+// --- ESTADOS DE CONTROL POR SITIO DESDE PWA DEV ---
+function normalizeSiteKey(value) {
+    let site = String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    if (site.startsWith('ICS ')) site = site.slice(4).trim();
+    return site;
+}
+
+function normalizePwaStatus(value) {
+    const raw = String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
+    if (['FINALIZADO', 'FINALIZADA', 'COMPLETADO', 'COMPLETADA'].includes(raw)) return 'FINALIZADO';
+    if (['EN_CURSO', 'ENCURSO', 'PARCIAL', 'ABIERTO', 'ABIERTA'].includes(raw)) return 'PARCIAL';
+    if (['PENDIENTE'].includes(raw)) return 'PENDIENTE';
+    return '';
+}
+
+function normalizePwaSiteStatusPayload(payload) {
+    const result = {};
+    const rows = Array.isArray(payload?.sitios) ? payload.sitios
+        : Array.isArray(payload?.data) ? payload.data
+        : Array.isArray(payload) ? payload
+        : null;
+
+    if (rows) {
+        for (const row of rows) {
+            const key = normalizeSiteKey(row?.sitio ?? row?.site ?? row?.nombre ?? row?.idSitio);
+            const status = normalizePwaStatus(row?.estado ?? row?.status ?? row?.estadoControl ?? row?.estadoPwa);
+            if (key && status) result[key] = status;
+        }
+        return result;
+    }
+
+    const map = payload?.sitios && typeof payload.sitios === 'object' ? payload.sitios
+        : payload?.data && typeof payload.data === 'object' ? payload.data
+        : payload && typeof payload === 'object' ? payload
+        : {};
+
+    for (const [name, value] of Object.entries(map)) {
+        const key = normalizeSiteKey(name);
+        const rawStatus = typeof value === 'string' ? value : (value?.estado ?? value?.status ?? value?.estadoControl ?? value?.estadoPwa);
+        const status = normalizePwaStatus(rawStatus);
+        if (key && status) result[key] = status;
+    }
+    return result;
+}
+
+async function loadPwaSiteStatuses() {
+    state.pwaSiteStatusReportStatus = 'loading';
+    state.pwaSiteStatusReportError = '';
+    try {
+        const response = await fetch(SITE_STATUS_API, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        state.pwaSiteStatuses = normalizePwaSiteStatusPayload(payload);
+        state.pwaSiteStatusReportStatus = 'ok';
+    } catch (error) {
+        console.warn('No se pudieron cargar los estados de control PWA:', error);
+        state.pwaSiteStatuses = {};
+        state.pwaSiteStatusReportStatus = 'error';
+        state.pwaSiteStatusReportError = String(error?.message || error || 'Error de conexión');
+    }
+    renderApp();
+}
+
+function getPwaSiteStatus(site) {
+    if (state.pwaSiteStatusReportStatus !== 'ok') return '';
+    const key = normalizeSiteKey(site?.name);
+    return key ? (state.pwaSiteStatuses?.[key] || '') : '';
+}
+
+function getEffectiveSiteStatus(site) {
+    // Regla conservadora:
+    // - Si el sitio existe en la PWA, la PWA manda.
+    // - Si NO existe en la PWA, se conserva exactamente el estado histórico del tablero.
+    return getPwaSiteStatus(site) || site?.status || 'PARCIAL';
+}
+
 // --- EVENT LISTENERS ---
 function initEventListeners() {
     if (DOM.filterMonth) {
@@ -299,7 +470,7 @@ function getFilteredSites() {
             return false;
         }
 
-        if (state.filterStatus !== 'ALL' && (site.status || 'PARCIAL') !== state.filterStatus) {
+        if (state.filterStatus !== 'ALL' && getEffectiveSiteStatus(site) !== state.filterStatus) {
             return false;
         }
 
@@ -427,11 +598,12 @@ function renderPivotTable(filteredSites) {
 
     const sortedMonths = Object.keys(monthsMap).sort().reverse();
     if (DOM.lblPivotCount) DOM.lblPivotCount.textContent = `${sortedMonths.length} Meses Registrados`;
+    updateMaterialsStatus();
 
     if (sortedMonths.length === 0) {
         DOM.pivotTbody.innerHTML = `
             <tr>
-                <td colspan="5">
+                <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-folder-open"></i>
                         <p>No hay datos disponibles para los filtros seleccionados.</p>
@@ -444,6 +616,7 @@ function renderPivotTable(filteredSites) {
 
     let html = '';
     let grandGu = 0, grandRan = 0, grandMou = 0, grandTotal = 0;
+    let grandGuMat = 0, grandRanMat = 0, grandMouMat = 0, grandMat = 0;
 
     sortedMonths.forEach(ym => {
         const data = monthsMap[ym];
@@ -460,24 +633,44 @@ function renderPivotTable(filteredSites) {
         grandMou += data.MOU;
         grandTotal += data.total;
 
+        const materialData = state.materialsMonthly?.[ym] || {};
+        if (ym >= MATERIALS_REPORT_FROM && state.materialsReportStatus === 'ok') {
+            grandGuMat += Number(materialData.GU || 0);
+            grandRanMat += Number(materialData.RAN || 0);
+            grandMouMat += Number(materialData.MOU || 0);
+            grandMat += Number(materialData.total || 0);
+        }
+
         html += `
             <tr>
                 <td><strong>${formattedLabel}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${ym})</span></td>
                 <td><span class="badge-tag badge-gu">${data.GU}</span></td>
+                <td><span class="material-qty material-gu">${formatMaterialQty(ym, 'GU')}</span></td>
                 <td><span class="badge-tag badge-ran">${data.RAN}</span></td>
+                <td><span class="material-qty material-ran">${formatMaterialQty(ym, 'RAN')}</span></td>
                 <td><span class="badge-tag badge-mou">${data.MOU}</span></td>
+                <td><span class="material-qty material-mou">${formatMaterialQty(ym, 'MOU')}</span></td>
                 <td><strong>${data.total} sitios</strong></td>
+                <td><strong class="material-total">${formatMaterialQty(ym, 'total')} u.</strong></td>
             </tr>
         `;
     });
+
+    const materialsTotalLabel = state.materialsReportStatus === 'ok'
+        ? `${grandMat.toLocaleString('es-AR')} u.`
+        : '—';
 
     html += `
         <tr class="pivot-total-row">
             <td>TOTAL ACUMULADO</td>
             <td><span class="badge-tag badge-gu">${grandGu}</span></td>
+            <td><span class="material-qty material-gu">${state.materialsReportStatus === 'ok' ? grandGuMat.toLocaleString('es-AR') : '—'}</span></td>
             <td><span class="badge-tag badge-ran">${grandRan}</span></td>
+            <td><span class="material-qty material-ran">${state.materialsReportStatus === 'ok' ? grandRanMat.toLocaleString('es-AR') : '—'}</span></td>
             <td><span class="badge-tag badge-mou">${grandMou}</span></td>
+            <td><span class="material-qty material-mou">${state.materialsReportStatus === 'ok' ? grandMouMat.toLocaleString('es-AR') : '—'}</span></td>
             <td><strong>${grandTotal} sitios</strong></td>
+            <td><strong class="material-total">${materialsTotalLabel}</strong></td>
         </tr>
     `;
 
@@ -525,7 +718,9 @@ function renderSitesTable(filteredSites) {
     let html = '';
     sorted.forEach((site, index) => {
         const badgeClass = site.contract === 'GU' ? 'badge-gu' : (site.contract === 'RAN' ? 'badge-ran' : 'badge-mou');
-        const status = site.status || 'PARCIAL';
+        const pwaStatus = getPwaSiteStatus(site);
+        const status = getEffectiveSiteStatus(site);
+        const isPwaSynced = Boolean(pwaStatus);
         let statusHtml = '';
 
         if (state.isAdmin) {
@@ -533,8 +728,12 @@ function renderSitesTable(filteredSites) {
             const isFinalizado = status === 'FINALIZADO' ? 'selected' : '';
             const isPendiente = status === 'PENDIENTE' ? 'selected' : '';
 
+            const syncedAttrs = isPwaSynced
+                ? 'disabled title="Estado sincronizado automáticamente desde la PWA" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:not-allowed; opacity:0.9; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(16,185,129,0.35);"'
+                : 'onchange="window.updateSiteStatusInline(\'' + site.id + '\', this.value)" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:pointer; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.15);"';
+
             statusHtml = `
-                <select onchange="window.updateSiteStatusInline('${site.id}', this.value)" class="select-style" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:pointer; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.15);">
+                <select ${syncedAttrs} class="select-style">
                     <option value="PARCIAL" ${isParcial}>🟡 Parcial</option>
                     <option value="FINALIZADO" ${isFinalizado}>🟢 Finalizado</option>
                     <option value="PENDIENTE" ${isPendiente}>⚪ Pendiente</option>
@@ -1018,7 +1217,7 @@ window.exportToCSV = function() {
             `"${(s.name || '').replace(/"/g, '""')}"`,
             `"${s.contract}"`,
             `"${(s.contractor || '').replace(/"/g, '""')}"`,
-            `"${s.status || 'PARCIAL'}"`,
+            `"${getEffectiveSiteStatus(s)}"`,
             `"${formatDate(s.date)}"`,
             `"${(s.notes || '').replace(/"/g, '""')}"`
         ];

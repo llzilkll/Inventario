@@ -178,17 +178,24 @@
                 <h2 class="section-title">
                     <i class="fa-solid fa-table-cells"></i> Desglose Mensual por Contrato (GU / RAN / MOU)
                 </h2>
-                <span class="field-label" id="lbl-pivot-count">0 Períodos</span>
+                <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end;">
+                    <span class="field-label" id="lbl-materials-status">Materiales PWA · cargando…</span>
+                    <span class="field-label" id="lbl-pivot-count">0 Períodos</span>
+                </div>
             </div>
             <div class="pivot-table-container">
                 <table class="custom-table">
                     <thead>
                         <tr>
                             <th>Mes / Año</th>
-                            <th>Contrato GU</th>
-                            <th>Contrato RAN</th>
-                            <th>Contrato MOU</th>
-                            <th>Total del Mes</th>
+                            <th>GU Sitios</th>
+                            <th>GU Materiales</th>
+                            <th>RAN Sitios</th>
+                            <th>RAN Materiales</th>
+                            <th>MOU Sitios</th>
+                            <th>MOU Materiales</th>
+                            <th>Total Sitios</th>
+                            <th>Total Materiales</th>
                         </tr>
                     </thead>
                     <tbody id="pivot-tbody">
