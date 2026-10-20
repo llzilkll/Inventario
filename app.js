@@ -332,9 +332,15 @@ async function loadPublicMovementStats() {
             incomeResponse.json(),
             egressResponse.json()
         ]);
-        const countRows = (payload) => Array.isArray(payload?.rows) ? payload.rows.length : 0;
-        incomeCount.textContent = countRows(incomePayload).toLocaleString('es-AR');
-        egressCount.textContent = countRows(egressPayload).toLocaleString('es-AR');
+        const sumUnits = (payload) => {
+            if (!Array.isArray(payload?.rows)) return 0;
+            return payload.rows.reduce((total, row) => {
+                const units = Number(row?.unidades ?? row?.cantidad ?? row?.units ?? 0);
+                return total + (Number.isFinite(units) ? units : 0);
+            }, 0);
+        };
+        incomeCount.textContent = sumUnits(incomePayload).toLocaleString('es-AR');
+        egressCount.textContent = sumUnits(egressPayload).toLocaleString('es-AR');
     } catch (error) {
         console.warn('No se pudieron cargar los movimientos públicos:', error);
         incomeCount.textContent = '—';

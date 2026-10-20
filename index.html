@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20261020-2">
 </head>
 <body>
 
@@ -146,13 +146,13 @@
         </section>
 
         <!-- Resumen diario de movimientos de componentes -->
-        <section class="movement-stats" aria-label="Movimientos de componentes de hoy">
+        <section class="movement-stats" aria-label="Cantidades de materiales de hoy">
             <article class="movement-stat movement-stat-income">
                 <div class="movement-stat-icon" aria-hidden="true">
                     <i class="fa-solid fa-arrow-down-to-bracket"></i>
                 </div>
                 <div class="movement-stat-copy">
-                    <span class="movement-stat-label">Ingresos de hoy</span>
+                    <span class="movement-stat-label">Materiales ingresados hoy</span>
                     <div class="movement-stat-value-row">
                         <strong id="public-income-count">—</strong>
                         <small>registros</small>
@@ -168,7 +168,7 @@
                     <i class="fa-solid fa-arrow-up-from-bracket"></i>
                 </div>
                 <div class="movement-stat-copy">
-                    <span class="movement-stat-label">Egresos de hoy</span>
+                    <span class="movement-stat-label">Materiales egresados hoy</span>
                     <div class="movement-stat-value-row">
                         <strong id="public-egress-count">—</strong>
                         <small>registros</small>
@@ -507,6 +507,6 @@
     <!-- Contenedor para Notificaciones Toast -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20261020-2"></script>
 </body>
 </html>
