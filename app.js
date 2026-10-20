@@ -40,6 +40,8 @@ let state = {
     pwaSiteStatuses: {},
     pwaSiteStatusReportStatus: 'loading',
     pwaSiteStatusReportError: '',
+    showAllPivot: false,
+    showAllSites: false,
     charts: {
         monthly: null,
         contract: null
@@ -71,6 +73,8 @@ function initDOM() {
         lblPivotCount: document.getElementById('lbl-pivot-count'),
         lblMaterialsStatus: document.getElementById('lbl-materials-status'),
         lblRecordsCount: document.getElementById('lbl-records-count'),
+        btnTogglePivot: document.getElementById('btn-toggle-pivot'),
+        btnToggleSites: document.getElementById('btn-toggle-sites'),
 
         btnOpenModal: document.getElementById('btn-open-modal'),
         btnExport: document.getElementById('btn-export'),
@@ -464,6 +468,20 @@ function initEventListeners() {
         });
     }
 
+    if (DOM.btnTogglePivot) {
+        DOM.btnTogglePivot.addEventListener('click', () => {
+            state.showAllPivot = !state.showAllPivot;
+            renderApp();
+        });
+    }
+
+    if (DOM.btnToggleSites) {
+        DOM.btnToggleSites.addEventListener('click', () => {
+            state.showAllSites = !state.showAllSites;
+            renderApp();
+        });
+    }
+
     if (DOM.modalSite) {
         DOM.modalSite.addEventListener('click', (e) => {
             if (e.target === DOM.modalSite) closeModal();
@@ -647,6 +665,7 @@ function renderPivotTable(filteredSites) {
 
     const sortedMonths = Object.keys(monthsMap).sort().reverse();
     if (DOM.lblPivotCount) DOM.lblPivotCount.textContent = `${sortedMonths.length} Meses Registrados`;
+    updateTableExpandButton(DOM.btnTogglePivot, state.showAllPivot, sortedMonths.length, 'meses');
     updateMaterialsStatus();
 
     if (sortedMonths.length === 0) {
@@ -667,16 +686,9 @@ function renderPivotTable(filteredSites) {
     let grandGu = 0, grandRan = 0, grandMou = 0, grandTotal = 0;
     let grandGuMat = 0, grandRanMat = 0, grandMouMat = 0, grandMat = 0;
 
+    // Los totales siempre representan todos los meses, aunque la vista esté contraída.
     sortedMonths.forEach(ym => {
         const data = monthsMap[ym];
-        let formattedLabel = ym;
-        if (ym.includes('-')) {
-            const [year, month] = ym.split('-');
-            const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
-            const monthName = dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-            formattedLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-        }
-
         grandGu += data.GU;
         grandRan += data.RAN;
         grandMou += data.MOU;
@@ -688,6 +700,18 @@ function renderPivotTable(filteredSites) {
             grandRanMat += Number(materialData.RAN || 0);
             grandMouMat += Number(materialData.MOU || 0);
             grandMat += Number(materialData.total || 0);
+        }
+    });
+
+    const visibleMonths = state.showAllPivot ? sortedMonths : sortedMonths.slice(0, 3);
+    visibleMonths.forEach(ym => {
+        const data = monthsMap[ym];
+        let formattedLabel = ym;
+        if (ym.includes('-')) {
+            const [year, month] = ym.split('-');
+            const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+            const monthName = dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            formattedLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
         }
 
         html += `
@@ -730,6 +754,7 @@ function renderPivotTable(filteredSites) {
 function renderSitesTable(filteredSites) {
     if (!DOM.sitesTbody) return;
     if (DOM.lblRecordsCount) DOM.lblRecordsCount.textContent = `Mostrando ${filteredSites.length} sitios`;
+    updateTableExpandButton(DOM.btnToggleSites, state.showAllSites, filteredSites.length, 'sitios');
 
     if (filteredSites.length === 0) {
         DOM.sitesTbody.innerHTML = `
@@ -764,8 +789,9 @@ function renderSitesTable(filteredSites) {
         return (b.id || '').localeCompare(a.id || '');
     });
 
+    const visibleSites = state.showAllSites ? sorted : sorted.slice(0, 3);
     let html = '';
-    sorted.forEach((site, index) => {
+    visibleSites.forEach((site, index) => {
         const badgeClass = site.contract === 'GU' ? 'badge-gu' : (site.contract === 'RAN' ? 'badge-ran' : 'badge-mou');
         const pwaStatus = getPwaSiteStatus(site);
         const status = getEffectiveSiteStatus(site);
@@ -825,6 +851,19 @@ function renderSitesTable(filteredSites) {
     });
 
     DOM.sitesTbody.innerHTML = html;
+}
+
+function updateTableExpandButton(button, expanded, total, itemLabel) {
+    if (!button) return;
+    const shouldShow = total > 3;
+    button.hidden = !shouldShow;
+    if (!shouldShow) return;
+    button.setAttribute('aria-expanded', String(expanded));
+    const label = expanded ? `Mostrar solo los primeros 3 ${itemLabel}` : `Mostrar todos los ${itemLabel}`;
+    const text = button.querySelector('span');
+    const icon = button.querySelector('i');
+    if (text) text.textContent = label;
+    if (icon) icon.className = expanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
 }
 
 // --- GRÁFICOS (CHART.JS) ---

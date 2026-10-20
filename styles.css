@@ -586,6 +586,35 @@ header {
     background: rgba(255, 255, 255, 0.03);
 }
 
+.table-expand-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    margin-top: 13px;
+    padding: 11px 16px;
+    border: 1px solid rgba(99, 102, 241, 0.38);
+    border-radius: var(--radius-sm);
+    background: rgba(30, 41, 59, 0.62);
+    color: #bfdbfe;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: var(--transition-fast);
+}
+
+.table-expand-button:hover {
+    border-color: rgba(129, 140, 248, 0.72);
+    background: rgba(49, 46, 129, 0.38);
+    transform: translateY(-1px);
+}
+
+.table-expand-button[hidden] {
+    display: none;
+}
+
 .pivot-total-row td {
     font-weight: 700;
     background: rgba(99, 102, 241, 0.08) !important;

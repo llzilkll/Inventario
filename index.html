@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-    <link rel="stylesheet" href="styles.css?v=20261020-2">
+    <link rel="stylesheet" href="styles.css?v=20261020-3">
 </head>
 <body>
 
@@ -255,6 +255,10 @@
                     </tbody>
                 </table>
             </div>
+            <button type="button" class="table-expand-button" id="btn-toggle-pivot" aria-expanded="false">
+                <span>Mostrar todos los meses</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
         </section>
 
         <!-- Tabla Completa de Registros de Sitios -->
@@ -292,6 +296,10 @@
                     </tbody>
                 </table>
             </div>
+            <button type="button" class="table-expand-button" id="btn-toggle-sites" aria-expanded="false">
+                <span>Mostrar todos los sitios</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
         </section>
 
     </main>
@@ -507,6 +515,6 @@
     <!-- Contenedor para Notificaciones Toast -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="app.js?v=20261020-2"></script>
+    <script src="app.js?v=20261020-3"></script>
 </body>
 </html>
