@@ -7,6 +7,7 @@ const DEFAULT_ADMIN_PASS = 'zilkjl2026';
 const MATERIALS_REPORT_FROM = '2026-07';
 const MATERIALS_REPORT_API = 'https://dev.inventariosanmartin.com.ar/api/reporte-materiales-mensual?desde=' + MATERIALS_REPORT_FROM;
 const SITE_STATUS_API = 'https://dev.inventariosanmartin.com.ar/api/estado-control-sitios';
+const PUBLIC_MOVEMENTS_API = 'https://pwa.inventariosanmartin.com.ar/api/public/movimientos-telefonica';
 
 // Configuración pública del proyecto independiente 'tablero-ingresos'
 const firebaseConfig = {
@@ -113,6 +114,8 @@ function initApp() {
     populateMonthFilterOptions();
     populateContractorsDatalist();
     renderApp();
+    loadPublicMovementStats();
+    window.setInterval(loadPublicMovementStats, 5 * 60 * 1000);
 }
 
 if (document.readyState === 'loading') {
@@ -297,6 +300,46 @@ function formatMaterialQty(ym, contract) {
     if (state.materialsReportStatus !== 'ok') return '—';
     const value = state.materialsMonthly?.[ym]?.[contract];
     return Number.isFinite(Number(value)) ? Number(value).toLocaleString('es-AR') : '0';
+}
+
+function getBuenosAiresDateKey() {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+}
+
+async function loadPublicMovementStats() {
+    const incomeCount = document.getElementById('public-income-count');
+    const egressCount = document.getElementById('public-egress-count');
+    if (!incomeCount || !egressCount) return;
+
+    const date = getBuenosAiresDateKey();
+    const buildUrl = (type) => `${PUBLIC_MOVEMENTS_API}?tipo=${type}&desde=${date}&hasta=${date}&_=${Date.now()}`;
+
+    try {
+        const [incomeResponse, egressResponse] = await Promise.all([
+            fetch(buildUrl('ingresos'), { headers: { 'Accept': 'application/json' }, cache: 'no-store' }),
+            fetch(buildUrl('egresos'), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+        ]);
+        if (!incomeResponse.ok || !egressResponse.ok) {
+            throw new Error(`HTTP ${incomeResponse.status}/${egressResponse.status}`);
+        }
+
+        const [incomePayload, egressPayload] = await Promise.all([
+            incomeResponse.json(),
+            egressResponse.json()
+        ]);
+        const countRows = (payload) => Array.isArray(payload?.rows) ? payload.rows.length : 0;
+        incomeCount.textContent = countRows(incomePayload).toLocaleString('es-AR');
+        egressCount.textContent = countRows(egressPayload).toLocaleString('es-AR');
+    } catch (error) {
+        console.warn('No se pudieron cargar los movimientos públicos:', error);
+        incomeCount.textContent = '—';
+        egressCount.textContent = '—';
+    }
 }
 
 
