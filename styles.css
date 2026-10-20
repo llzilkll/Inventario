@@ -322,6 +322,78 @@ header {
     color: var(--text-muted);
 }
 
+/* Public component report shortcut */
+.public-report-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding: 24px 28px;
+    border: 1px solid rgba(45, 212, 191, 0.32);
+    border-radius: var(--radius-lg);
+    background:
+        radial-gradient(circle at 12% 20%, rgba(59, 130, 246, 0.2), transparent 38%),
+        linear-gradient(110deg, rgba(19, 37, 67, 0.95), rgba(12, 54, 55, 0.9));
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
+.public-report-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.public-report-icon {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    color: #d9fffb;
+    font-size: 1.35rem;
+    background: linear-gradient(135deg, #2563eb, #0d9488);
+    box-shadow: 0 8px 22px rgba(13, 148, 136, 0.28);
+}
+
+.public-report-eyebrow {
+    margin-bottom: 3px;
+    color: #5eead4;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.public-report-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.public-report-description {
+    margin-top: 4px;
+    color: #b7c9df;
+    font-size: 0.9rem;
+}
+
+.public-report-button {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #14b8a6, #0f766e);
+    color: #ecfffc;
+    border: 1px solid rgba(153, 246, 228, 0.4);
+    box-shadow: 0 7px 20px rgba(13, 148, 136, 0.3);
+}
+
+.public-report-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(13, 148, 136, 0.42);
+}
+
 /* Section Cards Layout */
 .grid-2col {
     display: grid;
@@ -669,4 +741,20 @@ tbody tr:hover {
 @media (max-width: 1100px) {
     .pivot-table-container { overflow-x: auto; }
     .pivot-table-container .custom-table { min-width: 1180px; }
+}
+
+@media (max-width: 680px) {
+    .public-report-card {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .public-report-content {
+        align-items: flex-start;
+    }
+
+    .public-report-button {
+        width: 100%;
+    }
 }
