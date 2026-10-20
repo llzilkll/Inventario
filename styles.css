@@ -771,8 +771,10 @@ header {
 
 /* --- ESTILOS IMPECCABLE UI DESIGN SYSTEM --- */
 header {
-    background: linear-gradient(135deg, rgba(11, 15, 25, 0.95) 0%, rgba(23, 32, 54, 0.95) 100%) !important;
-    border-bottom: 1px solid rgba(99, 102, 241, 0.25) !important;
+    background:
+        radial-gradient(circle at 12% 20%, rgba(59, 130, 246, 0.2), transparent 38%),
+        linear-gradient(110deg, rgba(19, 37, 67, 0.97), rgba(12, 54, 55, 0.94)) !important;
+    border-bottom: 1px solid rgba(45, 212, 191, 0.32) !important;
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5) !important;
 }
 
