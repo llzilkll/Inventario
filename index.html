@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-    <link rel="stylesheet" href="styles.css?v=20261020-3">
+    <link rel="stylesheet" href="styles.css?v=20261020-4">
 </head>
 <body>
 
@@ -145,56 +145,57 @@
             </div>
         </section>
 
-        <!-- Resumen diario de movimientos de componentes -->
-        <section class="movement-stats" aria-label="Cantidades de materiales de hoy">
-            <article class="movement-stat movement-stat-income">
-                <div class="movement-stat-icon" aria-hidden="true">
-                    <i class="fa-solid fa-arrow-down-to-bracket"></i>
-                </div>
-                <div class="movement-stat-copy">
-                    <span class="movement-stat-label">Materiales ingresados hoy</span>
-                    <div class="movement-stat-value-row">
-                        <strong id="public-income-count">—</strong>
-                        <small>registros</small>
+        <!-- Reporte público y resumen diario de movimientos -->
+        <section class="public-movement-card" aria-label="Reporte público de componentes">
+            <div class="public-movement-header">
+                <div class="public-report-content">
+                    <div class="public-report-icon" aria-hidden="true">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <div class="public-report-eyebrow">Reporte público · Componentes</div>
+                        <h2 class="public-report-title">Reporte de Ingresos y Egresos</h2>
+                        <p class="public-report-description">Consultá los componentes ingresados y egresados por fecha o período seleccionado.</p>
                     </div>
                 </div>
-                <a href="https://pwa.inventariosanmartin.com.ar/movimientos-telefonica-publico" target="_blank" rel="noopener noreferrer">
-                    Ver reporte <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                <a class="btn public-report-button" href="https://pwa.inventariosanmartin.com.ar/movimientos-telefonica-publico" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir reporte
                 </a>
-            </article>
-
-            <article class="movement-stat movement-stat-egress">
-                <div class="movement-stat-icon" aria-hidden="true">
-                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                </div>
-                <div class="movement-stat-copy">
-                    <span class="movement-stat-label">Materiales egresados hoy</span>
-                    <div class="movement-stat-value-row">
-                        <strong id="public-egress-count">—</strong>
-                        <small>registros</small>
-                    </div>
-                </div>
-                <a href="https://pwa.inventariosanmartin.com.ar/egresos-telefonica-publico" target="_blank" rel="noopener noreferrer">
-                    Ver reporte <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                </a>
-            </article>
-        </section>
-
-        <!-- Acceso al reporte público de componentes -->
-        <section class="public-report-card" aria-label="Reporte público de ingresos">
-            <div class="public-report-content">
-                <div class="public-report-icon" aria-hidden="true">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <div>
-                    <div class="public-report-eyebrow">Reporte público · Componentes</div>
-                    <h2 class="public-report-title">Reporte de Ingresos</h2>
-                    <p class="public-report-description">Consultá los componentes ingresados por fecha o período seleccionado.</p>
-                </div>
             </div>
-            <a class="btn public-report-button" href="https://pwa.inventariosanmartin.com.ar/movimientos-telefonica-publico" target="_blank" rel="noopener noreferrer">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir reporte
-            </a>
+
+            <div class="movement-stats" aria-label="Cantidades de materiales de hoy">
+                <article class="movement-stat movement-stat-income">
+                    <div class="movement-stat-icon" aria-hidden="true">
+                        <i class="fa-solid fa-arrow-down-to-bracket"></i>
+                    </div>
+                    <div class="movement-stat-copy">
+                        <span class="movement-stat-label">Materiales ingresados hoy</span>
+                        <div class="movement-stat-value-row">
+                            <strong id="public-income-count">—</strong>
+                            <small>unidades</small>
+                        </div>
+                    </div>
+                    <a href="https://pwa.inventariosanmartin.com.ar/movimientos-telefonica-publico" target="_blank" rel="noopener noreferrer">
+                        Ver ingresos <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                    </a>
+                </article>
+
+                <article class="movement-stat movement-stat-egress">
+                    <div class="movement-stat-icon" aria-hidden="true">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    </div>
+                    <div class="movement-stat-copy">
+                        <span class="movement-stat-label">Materiales egresados hoy</span>
+                        <div class="movement-stat-value-row">
+                            <strong id="public-egress-count">—</strong>
+                            <small>unidades</small>
+                        </div>
+                    </div>
+                    <a href="https://pwa.inventariosanmartin.com.ar/egresos-telefonica-publico" target="_blank" rel="noopener noreferrer">
+                        Ver egresos <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                    </a>
+                </article>
+            </div>
         </section>
 
         <!-- Gráficos de Analítica -->
@@ -515,6 +516,6 @@
     <!-- Contenedor para Notificaciones Toast -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="app.js?v=20261020-3"></script>
+    <script src="app.js?v=20261020-4"></script>
 </body>
 </html>
