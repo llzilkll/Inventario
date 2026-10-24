@@ -368,6 +368,10 @@ function normalizePwaStatus(value) {
     return '';
 }
 
+function getManualStatusOverride(site) {
+    return normalizePwaStatus(site?.manualStatusOverride ?? site?.statusOverride ?? '');
+}
+
 function normalizePwaSiteStatusPayload(payload) {
     const result = {};
     const rows = Array.isArray(payload?.sitios) ? payload.sitios
@@ -427,10 +431,9 @@ function getPwaSiteStatus(site) {
 }
 
 function getEffectiveSiteStatus(site) {
-    // Regla conservadora:
-    // - Si el sitio existe en la PWA, la PWA manda.
-    // - Si NO existe en la PWA, se conserva exactamente el estado histórico del tablero.
-    return getPwaSiteStatus(site) || site?.status || 'PARCIAL';
+    // El administrador puede fijar una excepción para un sitio puntual.
+    // Si no existe, se usa el estado sincronizado desde la PWA y luego el histórico del tablero.
+    return getManualStatusOverride(site) || getPwaSiteStatus(site) || site?.status || 'PARCIAL';
 }
 
 // --- EVENT LISTENERS ---
@@ -796,19 +799,21 @@ function renderSitesTable(filteredSites) {
         const pwaStatus = getPwaSiteStatus(site);
         const status = getEffectiveSiteStatus(site);
         const isPwaSynced = Boolean(pwaStatus);
+        const manualStatus = getManualStatusOverride(site);
         let statusHtml = '';
 
         if (state.isAdmin) {
-            const isParcial = status === 'PARCIAL' ? 'selected' : '';
-            const isFinalizado = status === 'FINALIZADO' ? 'selected' : '';
-            const isPendiente = status === 'PENDIENTE' ? 'selected' : '';
-
-            const syncedAttrs = isPwaSynced
-                ? 'disabled title="Estado sincronizado automáticamente desde la PWA" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:not-allowed; opacity:0.9; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(16,185,129,0.35);"'
-                : 'onchange="window.updateSiteStatusInline(\'' + site.id + '\', this.value)" style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:pointer; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.15);"';
+            const selectedStatus = manualStatus || (!isPwaSynced ? status : 'AUTO');
+            const isParcial = selectedStatus === 'PARCIAL' ? 'selected' : '';
+            const isFinalizado = selectedStatus === 'FINALIZADO' ? 'selected' : '';
+            const isPendiente = selectedStatus === 'PENDIENTE' ? 'selected' : '';
+            const isAuto = selectedStatus === 'AUTO' ? 'selected' : '';
+            const syncedLabel = isPwaSynced ? ' title="Estado sincronizado desde la PWA; podés fijar un estado manual"' : '';
+            const statusStyle = ' style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:pointer; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.15);"';
 
             statusHtml = `
-                <select ${syncedAttrs} class="select-style">
+                <select onchange="window.updateSiteStatusInline('${site.id}', this.value)"${syncedLabel}${statusStyle} class="select-style">
+                    ${isPwaSynced ? `<option value="AUTO" ${isAuto}>🔄 Automático (PWA)</option>` : ''}
                     <option value="PARCIAL" ${isParcial}>🟡 Parcial</option>
                     <option value="FINALIZADO" ${isFinalizado}>🟢 Finalizado</option>
                     <option value="PENDIENTE" ${isPendiente}>⚪ Pendiente</option>
@@ -1009,7 +1014,10 @@ window.openModal = function(siteToEdit = null) {
         if (DOM.siteName) DOM.siteName.value = siteToEdit.name;
         if (DOM.siteContract) DOM.siteContract.value = siteToEdit.contract;
         if (DOM.siteContractor) DOM.siteContractor.value = siteToEdit.contractor || '';
-        if (DOM.siteStatus) DOM.siteStatus.value = siteToEdit.status || 'PARCIAL';
+        if (DOM.siteStatus) {
+            DOM.siteStatus.value = getManualStatusOverride(siteToEdit)
+                || (getPwaSiteStatus(siteToEdit) ? 'AUTO' : (siteToEdit.status || 'PARCIAL'));
+        }
         
         if (siteToEdit.date && siteToEdit.date.includes('-')) {
             const parts = siteToEdit.date.split('-');
@@ -1116,12 +1124,15 @@ function saveSiteForm() {
     if (state.editingId) {
         // Editar un solo registro existente
         const singleName = siteNames[0];
+        const existingSite = state.sites.find(s => s.id === state.editingId) || {};
+        const manualStatusOverride = status === 'AUTO' ? null : normalizePwaStatus(status);
         const siteRecord = {
             id: state.editingId,
             name: singleName,
             contract,
             contractor,
-            status,
+            status: status === 'AUTO' ? (existingSite.status || 'PARCIAL') : status,
+            manualStatusOverride,
             date,
             notes,
             updatedAt: new Date().toISOString()
@@ -1147,7 +1158,8 @@ function saveSiteForm() {
                 name: siteNameStr,
                 contract,
                 contractor,
-                status,
+                status: status === 'AUTO' ? 'PARCIAL' : status,
+                manualStatusOverride: status === 'AUTO' ? null : normalizePwaStatus(status),
                 date,
                 notes,
                 createdAt: new Date(nowMs + idx).toISOString()
@@ -1216,18 +1228,32 @@ window.updateSiteStatusInline = function(siteId, newStatus) {
 
     const site = state.sites.find(s => s.id === siteId);
     if (site) {
-        site.status = newStatus;
+        const normalizedStatus = newStatus === 'AUTO' ? '' : normalizePwaStatus(newStatus);
+        if (normalizedStatus) {
+            site.status = normalizedStatus;
+            site.manualStatusOverride = normalizedStatus;
+        } else {
+            site.manualStatusOverride = null;
+        }
         site.updatedAt = new Date().toISOString();
 
         if (rtdbRef) {
-            rtdbRef.child(siteId).update({ status: newStatus, updatedAt: site.updatedAt }).catch(err => {
+            rtdbRef.child(siteId).update({
+                ...(normalizedStatus ? { status: normalizedStatus, manualStatusOverride: normalizedStatus } : { manualStatusOverride: null }),
+                updatedAt: site.updatedAt
+            }).catch(err => {
                 console.warn("Error al actualizar estado en Firebase:", err);
             });
         }
 
         saveSitesLocal();
         renderApp();
-        showToast(`Estado de "${site.name}" cambiado a ${newStatus}`, "success");
+        showToast(
+            normalizedStatus
+                ? `Estado manual de "${site.name}" cambiado a ${normalizedStatus}`
+                : `"${site.name}" vuelve al estado automático de la PWA`,
+            "success"
+        );
     }
 };
 
