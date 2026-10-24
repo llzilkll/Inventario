@@ -841,6 +841,12 @@ function renderSitesTable(filteredSites) {
             `;
         }
 
+        const remitoHtml = `
+            <button type="button" class="btn btn-secondary btn-sm remito-button" onclick="window.openRemito('${site.id}')" title="Adjuntar remito">
+                <i class="fa-solid fa-file-invoice"></i> Remito
+            </button>
+        `;
+
         html += `
             <tr>
                 <td><span style="color:var(--text-muted); font-size:0.8rem;">#${sorted.length - index}</span></td>
@@ -849,7 +855,7 @@ function renderSitesTable(filteredSites) {
                 <td><span style="font-weight:500; color:#e2e8f0;"><i class="fa-solid fa-hard-hat" style="color:var(--accent-indigo); margin-right:6px; font-size:0.8rem;"></i>${site.contractor ? escapeHtml(site.contractor) : '-'}</span></td>
                 <td><i class="fa-regular fa-calendar" style="color:var(--text-muted); margin-right:6px;"></i> ${formatDate(site.date)}</td>
                 <td>${statusHtml}</td>
-                <td><span style="color:var(--text-secondary); font-size:0.85rem;">${site.notes ? escapeHtml(site.notes) : '-'}</span></td>
+                <td>${remitoHtml}</td>
                 <td style="text-align: right;">${actionsHtml}</td>
             </tr>
         `;
@@ -1044,6 +1050,11 @@ window.openModal = function(siteToEdit = null) {
         DOM.modalSite.classList.add('active');
     }
     if (DOM.siteName) DOM.siteName.focus();
+};
+
+window.openRemito = function(siteId) {
+    const site = state.sites.find(item => item.id === siteId);
+    showToast(`El remito de "${site?.name || 'este sitio'}" se podrá adjuntar en el siguiente paso.`, 'info');
 };
 
 window.closeModal = function() {
