@@ -23,6 +23,7 @@ const firebaseConfig = {
 
 let rtdbRef = null;
 let searchTimeout = null;
+let remitoUploadTask = null;
 
 // Estado global de la aplicación
 let state = {
@@ -32,6 +33,7 @@ let state = {
     filterStatus: 'ALL',
     filterSearch: '',
     editingId: null,
+    remitoSiteId: null,
     isAdmin: false,
     adminUser: 'ZILKJL',
     materialsMonthly: {},
@@ -96,6 +98,16 @@ function initDOM() {
         siteMonth: document.getElementById('site-month'),
         siteYear: document.getElementById('site-year'),
         siteNotes: document.getElementById('site-notes'),
+
+        modalRemito: document.getElementById('modal-remito'),
+        remitoSiteLabel: document.getElementById('remito-site-label'),
+        remitoExisting: document.getElementById('remito-existing'),
+        remitoFile: document.getElementById('remito-file'),
+        remitoFileInfo: document.getElementById('remito-file-info'),
+        remitoProgress: document.getElementById('remito-progress'),
+        remitoProgressBar: document.getElementById('remito-progress-bar'),
+        remitoStatus: document.getElementById('remito-status'),
+        btnUploadRemito: document.getElementById('btn-upload-remito'),
 
         modalLogin: document.getElementById('modal-login'),
         formLogin: document.getElementById('form-login'),
@@ -493,8 +505,18 @@ function initEventListeners() {
 
     if (DOM.modalLogin) {
         DOM.modalLogin.addEventListener('click', (e) => {
-            if (e.target === DOM.modalLogin) closeModal();
+            if (e.target === DOM.modalLogin) closeLoginModal();
         });
+    }
+
+    if (DOM.modalRemito) {
+        DOM.modalRemito.addEventListener('click', (e) => {
+            if (e.target === DOM.modalRemito) window.closeRemitoModal();
+        });
+    }
+
+    if (DOM.remitoFile) {
+        DOM.remitoFile.addEventListener('change', handleRemitoFileChange);
     }
 
     if (DOM.formSite) {
@@ -841,9 +863,10 @@ function renderSitesTable(filteredSites) {
             `;
         }
 
+        const hasRemito = Boolean(site.remito?.url);
         const remitoHtml = `
-            <button type="button" class="btn btn-secondary btn-sm remito-button" onclick="window.openRemito('${site.id}')" title="Adjuntar remito">
-                <i class="fa-solid fa-file-invoice"></i> Remito
+            <button type="button" class="btn ${hasRemito ? 'btn-success' : 'btn-secondary'} btn-sm remito-button" onclick="window.openRemito('${site.id}')" title="${hasRemito ? 'Ver o reemplazar remito' : 'Adjuntar remito'}">
+                <i class="fa-solid ${hasRemito ? 'fa-eye' : 'fa-file-invoice'}"></i> ${hasRemito ? 'Ver remito' : 'Adjuntar'}
             </button>
         `;
 
@@ -1054,7 +1077,165 @@ window.openModal = function(siteToEdit = null) {
 
 window.openRemito = function(siteId) {
     const site = state.sites.find(item => item.id === siteId);
-    showToast(`El remito de "${site?.name || 'este sitio'}" se podrá adjuntar en el siguiente paso.`, 'info');
+    if (!site || !DOM.modalRemito) return;
+
+    state.remitoSiteId = siteId;
+    remitoUploadTask = null;
+    if (DOM.remitoSiteLabel) {
+        DOM.remitoSiteLabel.textContent = `${site.name || 'Sitio sin nombre'} · ${site.contract || ''}`;
+    }
+    if (DOM.remitoFile) {
+        DOM.remitoFile.value = '';
+        DOM.remitoFile.disabled = !state.isAdmin;
+    }
+    if (DOM.remitoFileInfo) {
+        DOM.remitoFileInfo.hidden = true;
+        DOM.remitoFileInfo.textContent = '';
+    }
+    if (DOM.remitoProgress) DOM.remitoProgress.hidden = true;
+    if (DOM.remitoProgressBar) DOM.remitoProgressBar.style.width = '0%';
+    if (DOM.remitoStatus) {
+        DOM.remitoStatus.textContent = state.isAdmin
+            ? 'Seleccioná un archivo para adjuntarlo a este sitio.'
+            : 'Iniciá sesión como administrador para adjuntar o reemplazar el remito.';
+        DOM.remitoStatus.className = 'remito-status';
+    }
+    if (DOM.btnUploadRemito) {
+        DOM.btnUploadRemito.disabled = !state.isAdmin;
+        DOM.btnUploadRemito.hidden = !state.isAdmin;
+    }
+
+    const existing = site.remito && site.remito.url ? site.remito : null;
+    if (DOM.remitoExisting) {
+        DOM.remitoExisting.hidden = !existing;
+        DOM.remitoExisting.innerHTML = existing
+            ? `<i class="fa-solid fa-paperclip"></i> Ya hay un remito adjunto: <a href="${escapeHtml(existing.url)}" target="_blank" rel="noopener">${escapeHtml(existing.name || 'Abrir archivo')}</a>`
+            : '';
+    }
+
+    DOM.modalRemito.classList.add('active');
+};
+
+window.closeRemitoModal = function() {
+    if (remitoUploadTask && remitoUploadTask.cancel) {
+        remitoUploadTask.cancel();
+    }
+    remitoUploadTask = null;
+    state.remitoSiteId = null;
+    if (DOM.modalRemito) DOM.modalRemito.classList.remove('active');
+};
+
+function handleRemitoFileChange(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!DOM.remitoFileInfo || !DOM.remitoStatus) return;
+
+    if (!file) {
+        DOM.remitoFileInfo.hidden = true;
+        DOM.remitoFileInfo.textContent = '';
+        DOM.remitoStatus.textContent = 'Seleccioná un archivo para adjuntarlo a este sitio.';
+        DOM.remitoStatus.className = 'remito-status';
+        return;
+    }
+
+    const validType = file.type === 'application/pdf' || file.type.startsWith('image/');
+    const maxBytes = 15 * 1024 * 1024;
+    if (!validType || file.size > maxBytes) {
+        event.target.value = '';
+        DOM.remitoFileInfo.hidden = true;
+        DOM.remitoStatus.textContent = !validType
+            ? 'El archivo debe ser una imagen o un PDF.'
+            : 'El archivo supera el máximo permitido de 15 MB.';
+        DOM.remitoStatus.className = 'remito-status remito-status-error';
+        return;
+    }
+
+    DOM.remitoFileInfo.hidden = false;
+    DOM.remitoFileInfo.innerHTML = `<i class="fa-solid fa-paperclip"></i> ${escapeHtml(file.name)} · ${formatBytes(file.size)}`;
+    DOM.remitoStatus.textContent = 'Listo para guardar.';
+    DOM.remitoStatus.className = 'remito-status remito-status-success';
+}
+
+window.uploadRemito = async function() {
+    if (!state.isAdmin) {
+        showToast('Iniciá sesión como administrador para adjuntar un remito', 'danger');
+        window.closeRemitoModal();
+        window.openLoginModal();
+        return;
+    }
+
+    const site = state.sites.find(item => item.id === state.remitoSiteId);
+    const file = DOM.remitoFile && DOM.remitoFile.files ? DOM.remitoFile.files[0] : null;
+    if (!site || !file) {
+        if (DOM.remitoStatus) {
+            DOM.remitoStatus.textContent = 'Seleccioná una imagen o PDF antes de guardar.';
+            DOM.remitoStatus.className = 'remito-status remito-status-error';
+        }
+        return;
+    }
+
+    if (typeof firebase === 'undefined' || !firebase.storage) {
+        showToast('El almacenamiento de archivos no está disponible todavía', 'danger');
+        return;
+    }
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `remitos/${site.id}/${Date.now()}_${safeName}`;
+    const storageRef = firebase.storage().ref(storagePath);
+    const metadata = { contentType: file.type || 'application/octet-stream' };
+
+    if (DOM.btnUploadRemito) DOM.btnUploadRemito.disabled = true;
+    if (DOM.remitoFile) DOM.remitoFile.disabled = true;
+    if (DOM.remitoProgress) DOM.remitoProgress.hidden = false;
+    if (DOM.remitoProgressBar) DOM.remitoProgressBar.style.width = '0%';
+    if (DOM.remitoStatus) {
+        DOM.remitoStatus.textContent = 'Subiendo remito…';
+        DOM.remitoStatus.className = 'remito-status';
+    }
+
+    try {
+        remitoUploadTask = storageRef.put(file, metadata);
+        const downloadURL = await new Promise((resolve, reject) => {
+            remitoUploadTask.on('state_changed', snapshot => {
+                const progress = snapshot.totalBytes ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100 : 0;
+                if (DOM.remitoProgressBar) DOM.remitoProgressBar.style.width = `${progress}%`;
+            }, reject, async () => {
+                try {
+                    resolve(await remitoUploadTask.snapshot.ref.getDownloadURL());
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+
+        const remito = {
+            name: file.name,
+            url: downloadURL,
+            storagePath,
+            mimeType: file.type || '',
+            size: file.size,
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: state.adminUser || 'ZILKJL'
+        };
+        site.remito = remito;
+        site.updatedAt = new Date().toISOString();
+        if (rtdbRef) {
+            await rtdbRef.child(site.id).update({ remito, updatedAt: site.updatedAt });
+        }
+        saveSitesLocal();
+        renderApp();
+        window.closeRemitoModal();
+        showToast(`Remito de "${site.name}" guardado correctamente`, 'success');
+    } catch (error) {
+        console.error('Error al subir remito:', error);
+        if (DOM.btnUploadRemito) DOM.btnUploadRemito.disabled = false;
+        if (DOM.remitoFile) DOM.remitoFile.disabled = false;
+        if (DOM.remitoStatus) {
+            DOM.remitoStatus.textContent = 'No se pudo guardar el remito. Revisá la conexión e intentá nuevamente.';
+            DOM.remitoStatus.className = 'remito-status remito-status-error';
+        }
+    } finally {
+        remitoUploadTask = null;
+    }
 };
 
 window.closeModal = function() {
@@ -1382,6 +1563,13 @@ function formatDate(dateStr) {
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
     return dateStr;
+}
+
+function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 function escapeHtml(str) {

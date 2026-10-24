@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
     <link rel="stylesheet" href="styles.css?v=20261020-5">
 </head>
@@ -483,6 +484,40 @@
         </div>
     </div>
 
+    <!-- Modal para adjuntar remitos -->
+    <div class="modal-overlay" id="modal-remito">
+        <div class="modal-content remito-modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-file-invoice" style="color:var(--accent-indigo);"></i> Remito del sitio</h3>
+                <button class="btn btn-secondary btn-icon-only" type="button" onclick="window.closeRemitoModal()" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="remito-site-label" id="remito-site-label"></p>
+            <div class="remito-existing" id="remito-existing" hidden></div>
+
+            <div class="form-group">
+                <label class="form-label" for="remito-file">Seleccionar imagen o PDF</label>
+                <input type="file" id="remito-file" class="input-style form-control" accept="image/*,.pdf,application/pdf">
+                <small class="remito-help">Formatos permitidos: JPG, PNG, WEBP o PDF. Tamaño máximo: 15 MB.</small>
+            </div>
+
+            <div class="remito-file-info" id="remito-file-info" hidden></div>
+            <div class="remito-progress" id="remito-progress" hidden>
+                <div class="remito-progress-bar" id="remito-progress-bar"></div>
+            </div>
+            <p class="remito-status" id="remito-status" role="status"></p>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="window.closeRemitoModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-upload-remito" onclick="window.uploadRemito()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Guardar remito
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Login Administrador (ZILKJL) -->
     <div class="modal-overlay" id="modal-login">
         <div class="modal-content" style="max-width: 400px;">
@@ -517,6 +552,6 @@
     <!-- Contenedor para Notificaciones Toast -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="app.js?v=20261024-1"></script>
+    <script src="app.js?v=20261024-2"></script>
 </body>
 </html>

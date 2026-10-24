@@ -714,6 +714,76 @@ header {
     margin-top: 24px;
 }
 
+.remito-modal-content {
+    max-width: 560px;
+}
+
+.remito-site-label {
+    margin: -8px 0 22px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.remito-existing {
+    margin: 0 0 18px;
+    padding: 11px 13px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--radius-sm);
+    background: rgba(16, 185, 129, 0.1);
+    color: #a7f3d0;
+    font-size: 0.85rem;
+}
+
+.remito-existing a {
+    color: #d1fae5;
+    font-weight: 700;
+}
+
+.remito-help {
+    display: block;
+    margin-top: 7px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.remito-file-info {
+    margin: -4px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: var(--radius-sm);
+    background: rgba(99, 102, 241, 0.1);
+    color: #c7d2fe;
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+
+.remito-progress {
+    height: 7px;
+    margin: 10px 0 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.remito-progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-indigo), var(--accent-blue));
+    transition: width 0.2s ease;
+}
+
+.remito-status {
+    min-height: 1.3em;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.remito-status-success { color: #86efac; }
+.remito-status-error { color: #fca5a5; }
+
 /* Toast Notifications */
 .toast-container {
     position: fixed;
