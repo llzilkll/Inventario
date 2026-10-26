@@ -498,9 +498,12 @@
             <div class="remito-existing" id="remito-existing" hidden></div>
 
             <div class="form-group">
-                <label class="form-label" for="remito-file">Seleccionar imagen o PDF</label>
-                <input type="file" id="remito-file" class="input-style form-control" accept="image/*,.pdf,application/pdf">
-                <small class="remito-help">Formatos permitidos: JPG, PNG, WEBP o PDF. Tamaño máximo: 15 MB.</small>
+                <label class="form-label" for="remito-file">Foto del remito</label>
+                <input type="file" id="remito-file" class="remito-camera-input" accept="image/*" capture="environment">
+                <label class="btn btn-primary remito-camera-button" for="remito-file">
+                    <i class="fa-solid fa-camera"></i> Sacar foto del remito
+                </label>
+                <small class="remito-help">Desde el celular se abre la cámara. También podés elegir una foto de la galería. Máximo: 15 MB.</small>
             </div>
 
             <div class="remito-file-info" id="remito-file-info" hidden></div>

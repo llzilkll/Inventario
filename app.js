@@ -1096,7 +1096,7 @@ window.openRemito = function(siteId) {
     if (DOM.remitoProgressBar) DOM.remitoProgressBar.style.width = '0%';
     if (DOM.remitoStatus) {
         DOM.remitoStatus.textContent = state.isAdmin
-            ? 'Seleccioná un archivo para adjuntarlo a este sitio.'
+            ? 'Sacá una foto del remito para adjuntarla a este sitio.'
             : 'Iniciá sesión como administrador para adjuntar o reemplazar el remito.';
         DOM.remitoStatus.className = 'remito-status';
     }
@@ -1132,26 +1132,26 @@ function handleRemitoFileChange(event) {
     if (!file) {
         DOM.remitoFileInfo.hidden = true;
         DOM.remitoFileInfo.textContent = '';
-        DOM.remitoStatus.textContent = 'Seleccioná un archivo para adjuntarlo a este sitio.';
+        DOM.remitoStatus.textContent = 'Sacá una foto del remito para adjuntarla a este sitio.';
         DOM.remitoStatus.className = 'remito-status';
         return;
     }
 
-    const validType = file.type === 'application/pdf' || file.type.startsWith('image/');
+    const validType = file.type.startsWith('image/');
     const maxBytes = 15 * 1024 * 1024;
     if (!validType || file.size > maxBytes) {
         event.target.value = '';
         DOM.remitoFileInfo.hidden = true;
         DOM.remitoStatus.textContent = !validType
-            ? 'El archivo debe ser una imagen o un PDF.'
-            : 'El archivo supera el máximo permitido de 15 MB.';
+            ? 'La foto debe estar en formato JPG, PNG o WEBP.'
+            : 'La foto supera el máximo permitido de 15 MB.';
         DOM.remitoStatus.className = 'remito-status remito-status-error';
         return;
     }
 
     DOM.remitoFileInfo.hidden = false;
     DOM.remitoFileInfo.innerHTML = `<i class="fa-solid fa-paperclip"></i> ${escapeHtml(file.name)} · ${formatBytes(file.size)}`;
-    DOM.remitoStatus.textContent = 'Listo para guardar.';
+    DOM.remitoStatus.textContent = 'Foto lista para guardar.';
     DOM.remitoStatus.className = 'remito-status remito-status-success';
 }
 
@@ -1167,7 +1167,7 @@ window.uploadRemito = async function() {
     const file = DOM.remitoFile && DOM.remitoFile.files ? DOM.remitoFile.files[0] : null;
     if (!site || !file) {
         if (DOM.remitoStatus) {
-            DOM.remitoStatus.textContent = 'Seleccioná una imagen o PDF antes de guardar.';
+            DOM.remitoStatus.textContent = 'Sacá una foto del remito antes de guardar.';
             DOM.remitoStatus.className = 'remito-status remito-status-error';
         }
         return;

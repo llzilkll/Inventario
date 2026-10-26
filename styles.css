@@ -747,6 +747,29 @@ header {
     font-size: 0.75rem;
 }
 
+.remito-camera-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.remito-camera-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.remito-camera-input:focus-visible + .remito-camera-button {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 3px;
+}
+
 .remito-file-info {
     margin: -4px 0 14px;
     padding: 10px 12px;
