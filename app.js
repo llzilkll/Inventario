@@ -825,17 +825,19 @@ function renderSitesTable(filteredSites) {
         let statusHtml = '';
 
         if (state.isAdmin) {
-            const selectedStatus = manualStatus || (!isPwaSynced ? status : 'AUTO');
+            // Mostrar siempre el estado efectivo en el selector. Cuando viene de la
+            // PWA, "Automático (PWA)" queda disponible como opción para volver a
+            // sincronizar, pero no oculta el estado actual detrás de "AUTO".
+            const selectedStatus = manualStatus || status;
             const isParcial = selectedStatus === 'PARCIAL' ? 'selected' : '';
             const isFinalizado = selectedStatus === 'FINALIZADO' ? 'selected' : '';
             const isPendiente = selectedStatus === 'PENDIENTE' ? 'selected' : '';
-            const isAuto = selectedStatus === 'AUTO' ? 'selected' : '';
             const syncedLabel = isPwaSynced ? ' title="Estado sincronizado desde la PWA; podés fijar un estado manual"' : '';
             const statusStyle = ' style="padding:4px 10px; font-size:0.75rem; font-weight:600; border-radius:12px; cursor:pointer; background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.15);"';
 
             statusHtml = `
                 <select onchange="window.updateSiteStatusInline('${site.id}', this.value)"${syncedLabel}${statusStyle} class="select-style">
-                    ${isPwaSynced ? `<option value="AUTO" ${isAuto}>🔄 Automático (PWA)</option>` : ''}
+                    ${isPwaSynced ? '<option value="AUTO">🔄 Automático (PWA)</option>' : ''}
                     <option value="PARCIAL" ${isParcial}>🟡 Parcial</option>
                     <option value="FINALIZADO" ${isFinalizado}>🟢 Finalizado</option>
                     <option value="PENDIENTE" ${isPendiente}>⚪ Pendiente</option>
